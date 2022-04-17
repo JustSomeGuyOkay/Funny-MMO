@@ -672,6 +672,10 @@ namespace Intersect.Editor.Forms.Editors.Events
                     tmpCommand = new WaitCommand();
 
                     break;
+                case EventCommandType.DropItem:
+                    tmpCommand = new DropItemCommand();
+
+                    break;
                 case EventCommandType.OpenBank:
                     tmpCommand = new OpenBankCommand();
 
@@ -1293,6 +1297,10 @@ namespace Intersect.Editor.Forms.Editors.Events
                     break;
                 case EventCommandType.Wait:
                     cmdWindow = new EventCommandWait((WaitCommand) command, this);
+
+                    break;
+                case EventCommandType.DropItem:
+                    cmdWindow = new EventCommandDropItem(this, mCurrentMap, MyEvent, (DropItemCommand)command);
 
                     break;
                 case EventCommandType.OpenBank:

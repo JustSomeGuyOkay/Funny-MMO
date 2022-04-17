@@ -30,6 +30,11 @@ namespace Intersect.Config
             "Fishing Rod"
         };
 
+        public Dictionary<string, string> CosmeticMapping = new Dictionary<string, string>()
+        {
+
+        };
+
         public int WeaponSlot = 2;
 
         [OnDeserializing]
@@ -37,6 +42,7 @@ namespace Intersect.Config
         {
             Slots.Clear();
             ToolTypes.Clear();
+            CosmeticMapping.Clear();
         }
 
         [OnDeserialized]

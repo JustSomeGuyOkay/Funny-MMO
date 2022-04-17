@@ -479,7 +479,7 @@ namespace Intersect.Client.Entities
         //Returns the amount of time required to traverse 1 tile
         public virtual float GetMovementTime()
         {
-            var time = 1000f / (float) (1 + Math.Log(Stat[(int) Stats.Speed]));
+            var time = 900f / (float) (1 + Math.Log(Stat[(int) Stats.Speed]));
             if (Blocking)
             {
                 time += time * (float) Options.BlockingSlow;
@@ -1010,7 +1010,15 @@ namespace Intersect.Client.Entities
                 for (var z = 0; z < Options.PaperdollOrder[Dir].Count; z++)
                 {
                     var paperdoll = Options.PaperdollOrder[Dir][z];
-                    var equipSlot = Options.EquipmentSlots.IndexOf(paperdoll);
+                    int equipSlot;
+                    if (Options.CosmeticMapping.ContainsKey(paperdoll) && Equipment[Options.EquipmentSlots.IndexOf(Options.CosmeticMapping[paperdoll])] != Guid.Empty)
+                    {
+                        equipSlot = Options.EquipmentSlots.IndexOf(Options.CosmeticMapping[paperdoll]);
+                    }
+                    else
+                    {
+                        equipSlot = Options.EquipmentSlots.IndexOf(paperdoll);
+                    }
 
                     //Check for player
                     if (paperdoll == "Player")
@@ -1772,12 +1780,7 @@ namespace Intersect.Client.Entities
             }
 
             SpriteAnimation = AnimatedTextures[SpriteAnimations.Idle] != null && LastActionTime + Options.Instance.Sprites.TimeBeforeIdle < Globals.System.GetTimeMs() ? SpriteAnimations.Idle : SpriteAnimations.Normal;
-            if (IsMoving)
-            {
-                SpriteAnimation = SpriteAnimations.Normal;
-                LastActionTime = Globals.System.GetTimeMs();
-            }
-            else if (AttackTimer > Timing.Global.Ticks / TimeSpan.TicksPerMillisecond) //Attacking
+            if (AttackTimer > Timing.Global.Ticks / TimeSpan.TicksPerMillisecond) //Attacking
             {
                 var timeIn = CalculateAttackTime() - (AttackTimer - Timing.Global.Ticks / TimeSpan.TicksPerMillisecond);
                 LastActionTime = Globals.System.GetTimeMs();
@@ -1848,6 +1851,11 @@ namespace Intersect.Client.Entities
 
                     SpriteFrame = (int)Math.Floor((timeIn / (duration / (float)SpriteFrames)));
                 }
+                LastActionTime = Globals.System.GetTimeMs();
+            }
+            else if (IsMoving)
+            {
+                SpriteAnimation = SpriteAnimations.Normal;
                 LastActionTime = Globals.System.GetTimeMs();
             }
 

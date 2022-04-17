@@ -174,6 +174,8 @@
         //Etc
         Wait,
 
+        DropItem = 1001,
+
         //Shop and Bank
         OpenBank,
 
