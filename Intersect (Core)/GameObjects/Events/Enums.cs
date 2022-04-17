@@ -174,8 +174,6 @@
         //Etc
         Wait,
 
-        DropItem = 1001,
-
         //Shop and Bank
         OpenBank,
 
@@ -231,6 +229,9 @@
 
         //Reset Stats
         ResetStatPointAllocations,
+
+        //Funny MMO stuff
+        DropItem = 1001,
     }
 
 }
