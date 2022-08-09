@@ -242,6 +242,8 @@ namespace Intersect.Server.Core
 
             CustomColors.Load();
 
+            ProfanityFilter.Load();
+
             if (Options.Instance.Metrics.Enable)
             {
                 MetricsRoot.Init();

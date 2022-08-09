@@ -796,6 +796,9 @@ namespace Intersect.Server.Networking
                 msg = msg.Remove(0, cmd.Length);
             }
 
+            // Filter for profanity, but only on the message portion.
+            msg = ProfanityFilter.FilterWords(msg);
+
             var msgSplit = msg.Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries);
 
             if (cmd == Strings.Chat.localcmd)
@@ -1367,7 +1370,7 @@ namespace Intersect.Server.Networking
                 return;
             }
 
-            if (!FieldChecking.IsValidUsername(packet.Username, Strings.Regex.username))
+            if (!FieldChecking.IsValidUsername(packet.Username, Strings.Regex.username) | ProfanityFilter.ContainsFilteredWords(packet.Username))
             {
                 PacketSender.SendError(client, Strings.Account.invalidname);
 
@@ -1453,7 +1456,7 @@ namespace Intersect.Server.Networking
                 return;
             }
 
-            if (!FieldChecking.IsValidUsername(packet.Name, Strings.Regex.username))
+            if (!FieldChecking.IsValidUsername(packet.Name, Strings.Regex.username) | ProfanityFilter.ContainsFilteredWords(packet.Name))
             {
                 PacketSender.SendError(client, Strings.Account.invalidname);
 
