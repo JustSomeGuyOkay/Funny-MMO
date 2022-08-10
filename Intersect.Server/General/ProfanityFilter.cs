@@ -130,7 +130,10 @@ namespace Intersect.Server.General
         {
             var regexPattern = Regex.Escape(wildcardSearch);
 
-            regexPattern = regexPattern.Replace(@"\*", ".*?");
+            regexPattern = regexPattern.Replace(@"\*", "\\w*");
+            regexPattern = regexPattern.Replace(@"\?", "\\w");
+
+            /*regexPattern = regexPattern.Replace(@"\*", ".*?");
             regexPattern = regexPattern.Replace(@"\?", ".");
 
             if (regexPattern.StartsWith(".*?", StringComparison.Ordinal))
@@ -139,7 +142,7 @@ namespace Intersect.Server.General
                 regexPattern = @"(^\b)*?" + regexPattern;
             }
 
-            regexPattern = @"\b" + regexPattern + @"\b";
+            regexPattern = @"\b" + regexPattern + @"\b";*/
 
             return regexPattern;
         }
