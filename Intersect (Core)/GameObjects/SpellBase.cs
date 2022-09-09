@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Intersect.Enums;
@@ -14,7 +14,7 @@ using Newtonsoft.Json;
 namespace Intersect.GameObjects
 {
 
-    public class SpellBase : DatabaseObject<SpellBase>, IFolderable
+    public partial class SpellBase : DatabaseObject<SpellBase>, IFolderable
     {
 
         [NotMapped] public int[] VitalCost = new int[(int) Vitals.VitalCount];
@@ -51,12 +51,24 @@ namespace Intersect.GameObjects
         [Column("HitAnimation")]
         public Guid HitAnimationId { get; set; }
 
+
         [NotMapped]
         [JsonIgnore]
         public AnimationBase HitAnimation
         {
             get => AnimationBase.Get(HitAnimationId);
             set => HitAnimationId = value?.Id ?? Guid.Empty;
+        }
+
+        [Column("TickAnimation")]
+        public Guid TickAnimationId { get; set; }
+
+        [NotMapped]
+        [JsonIgnore]
+        public AnimationBase TickAnimation
+        {
+            get => AnimationBase.Get(TickAnimationId);
+            set => TickAnimationId = value?.Id ?? Guid.Empty;
         }
 
         //Spell Times
@@ -149,7 +161,7 @@ namespace Intersect.GameObjects
     }
 
     [Owned]
-    public class SpellCombatData
+    public partial class SpellCombatData
     {
 
         [NotMapped] public int[] VitalDiff = new int[(int) Vitals.VitalCount];
@@ -211,7 +223,7 @@ namespace Intersect.GameObjects
         [NotMapped]
         public int[] PercentageStatDiff { get; set; } = new int[(int) Stats.StatCount];
 
-        public int Scaling { get; set; } = 100;
+        public int Scaling { get; set; } = 0;
 
         public int ScalingStat { get; set; }
 
@@ -236,7 +248,7 @@ namespace Intersect.GameObjects
     }
 
     [Owned]
-    public class SpellWarpData
+    public partial class SpellWarpData
     {
 
         public Guid MapId { get; set; }
@@ -250,7 +262,7 @@ namespace Intersect.GameObjects
     }
 
     [Owned]
-    public class SpellDashOpts
+    public partial class SpellDashOpts
     {
 
         public bool IgnoreMapBlocks { get; set; }

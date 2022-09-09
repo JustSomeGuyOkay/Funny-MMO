@@ -6,7 +6,7 @@ using Intersect.Collections;
 namespace Intersect.Network
 {
 
-    public abstract class CerasPacket : IPacket
+    public abstract partial class CerasPacket : IPacket
     {
         private static Ceras sCerasInstance { get; set; }
 
@@ -21,6 +21,10 @@ namespace Intersect.Network
         public virtual byte[] Data => Ceras.Serialize(this) ?? throw new Exception("Failed to serialize packet.");
 
         public virtual bool IsValid => true;
+
+        public abstract long ReceiveTime { get; set; }
+
+        public abstract long ProcessTime { get; set; }
 
         /// <inheritdoc />
         public virtual Dictionary<string, SanitizedValue<object>> Sanitize()

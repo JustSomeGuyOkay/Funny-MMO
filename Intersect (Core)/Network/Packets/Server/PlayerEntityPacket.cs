@@ -6,7 +6,7 @@ using MessagePack;
 namespace Intersect.Network.Packets.Server
 {
     [MessagePackObject]
-    public class PlayerEntityPacket : EntityPacket
+    public partial class PlayerEntityPacket : EntityPacket
     {
         //Parameterless Constructor for MessagePack
         public PlayerEntityPacket()
@@ -29,7 +29,7 @@ namespace Intersect.Network.Packets.Server
         [Key(27)]
         public EquipmentPacket Equipment { get; set; }
 
-
+    
         [Key(28)]
         public long CombatTimeRemaining { get; set; }
 

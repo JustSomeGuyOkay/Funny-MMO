@@ -1,36 +1,89 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 using Intersect.Enums;
 using Intersect.GameObjects;
 using Intersect.GameObjects.Events;
 using Intersect.Localization;
+using Intersect.Logging;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Intersect.Editor.Localization
 {
-
     public static partial class Strings
     {
+        private const string StringsFileName = "editor_strings.json";
+
+        public static string FormatBoolean(bool value, BooleanStyle booleanStyle)
+        {
+            switch (booleanStyle)
+            {
+                case BooleanStyle.TrueFalse: return value ? General.True : General.False;
+                case BooleanStyle.YesNo: return value ? General.Yes : General.No;
+                default: throw new ArgumentOutOfRangeException(nameof(booleanStyle));
+            }
+        }
+
+        public static string FormatTimeMilliseconds(long milliseconds, int? splitMagnitude = default)
+        {
+            if (milliseconds < 1000 * Math.Pow(10, splitMagnitude ?? 1))
+            {
+                return Time.SuffixMilliseconds.ToString(milliseconds);
+            }
+
+            var seconds = milliseconds / 1000.0;
+            if (seconds < 60 * Math.Pow(10, splitMagnitude ?? 0))
+            {
+                return Time.SuffixSeconds.ToString(seconds);
+            }
+
+            var minutes = seconds / 60;
+            if (minutes < 60 * Math.Pow(10, splitMagnitude ?? 0))
+            {
+                return Time.SuffixMinutes.ToString(minutes);
+            }
+
+            var hours = minutes / 60;
+            if (hours < 24 * (splitMagnitude ?? 1))
+            {
+                return Time.SuffixHours.ToString(hours);
+            }
+
+            var days = hours / 24;
+            if (days < 7 * (splitMagnitude ?? 1))
+            {
+                return Time.SuffixDays.ToString(days);
+            }
+
+            var weeks = days / 7;
+            return Time.SuffixWeeks.ToString(weeks);
+        }
 
         public static string GetEventConditionalDesc(VariableIsCondition condition)
         {
-            var pVar = GetVariableComparisonString((dynamic) condition.Comparison);
+            var pVar = GetVariableComparisonString((dynamic)condition.Comparison);
 
             if (condition.VariableType == VariableTypes.PlayerVariable)
             {
-                return Strings.EventConditionDesc.playervariable.ToString(
+                return EventConditionDesc.playervariable.ToString(
                     PlayerVariableBase.GetName(condition.VariableId), pVar
                 );
             }
             else if (condition.VariableType == VariableTypes.ServerVariable)
             {
-                return Strings.EventConditionDesc.globalvariable.ToString(
+                return EventConditionDesc.globalvariable.ToString(
                     ServerVariableBase.GetName(condition.VariableId), pVar
+                );
+            }
+            else if (condition.VariableType == VariableTypes.GuildVariable)
+            {
+                return EventConditionDesc.guildvariable.ToString(
+                    GuildVariableBase.GetName(condition.VariableId), pVar
                 );
             }
 
@@ -45,34 +98,37 @@ namespace Intersect.Editor.Localization
                 switch (condition.VariableType)
                 {
                     case VariableTypes.PlayerVariable:
-                        amount = string.Format(@"({0}: {1})", Strings.EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
+                        amount = string.Format(@"({0}: {1})", EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
                         break;
                     case VariableTypes.ServerVariable:
-                        amount = string.Format(@"({0}: {1})", Strings.EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
+                        amount = string.Format(@"({0}: {1})", EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
+                        break;
+                    case VariableTypes.GuildVariable:
+                        amount = string.Format(@"({0}: {1})", EventConditional.guildvariable, GuildVariableBase.GetName(condition.VariableId));
                         break;
                 }
 
-                return Strings.EventConditionDesc.hasitem.ToString(amount, ItemBase.GetName(condition.ItemId));
+                return EventConditionDesc.hasitem.ToString(amount, ItemBase.GetName(condition.ItemId));
             }
             else
             {
-                return Strings.EventConditionDesc.hasitem.ToString(condition.Quantity, ItemBase.GetName(condition.ItemId));
+                return EventConditionDesc.hasitem.ToString(condition.Quantity, ItemBase.GetName(condition.ItemId));
             }
         }
 
         public static string GetEventConditionalDesc(IsItemEquippedCondition condition)
         {
-            return Strings.EventConditionDesc.hasitemequipped.ToString(ItemBase.GetName(condition.ItemId));
+            return EventConditionDesc.hasitemequipped.ToString(ItemBase.GetName(condition.ItemId));
         }
 
         public static string GetEventConditionalDesc(ClassIsCondition condition)
         {
-            return Strings.EventConditionDesc.Class.ToString(ClassBase.GetName(condition.ClassId));
+            return EventConditionDesc.Class.ToString(ClassBase.GetName(condition.ClassId));
         }
 
         public static string GetEventConditionalDesc(KnowsSpellCondition condition)
         {
-            return Strings.EventConditionDesc.knowsspell.ToString(SpellBase.GetName(condition.SpellId));
+            return EventConditionDesc.knowsspell.ToString(SpellBase.GetName(condition.SpellId));
         }
 
         public static string GetEventConditionalDesc(LevelOrStatCondition condition)
@@ -81,27 +137,27 @@ namespace Intersect.Editor.Localization
             switch (condition.Comparator)
             {
                 case VariableComparators.Equal:
-                    pLvl = Strings.EventConditionDesc.equal.ToString(condition.Value);
+                    pLvl = EventConditionDesc.equal.ToString(condition.Value);
 
                     break;
                 case VariableComparators.GreaterOrEqual:
-                    pLvl = Strings.EventConditionDesc.greaterequal.ToString(condition.Value);
+                    pLvl = EventConditionDesc.greaterequal.ToString(condition.Value);
 
                     break;
                 case VariableComparators.LesserOrEqual:
-                    pLvl = Strings.EventConditionDesc.lessthanequal.ToString(condition.Value);
+                    pLvl = EventConditionDesc.lessthanequal.ToString(condition.Value);
 
                     break;
                 case VariableComparators.Greater:
-                    pLvl = Strings.EventConditionDesc.greater.ToString(condition.Value);
+                    pLvl = EventConditionDesc.greater.ToString(condition.Value);
 
                     break;
                 case VariableComparators.Less:
-                    pLvl = Strings.EventConditionDesc.lessthan.ToString(condition.Value);
+                    pLvl = EventConditionDesc.lessthan.ToString(condition.Value);
 
                     break;
                 case VariableComparators.NotEqual:
-                    pLvl = Strings.EventConditionDesc.notequal.ToString(condition.Value);
+                    pLvl = EventConditionDesc.notequal.ToString(condition.Value);
 
                     break;
             }
@@ -109,26 +165,26 @@ namespace Intersect.Editor.Localization
             var lvlorstat = "";
             if (condition.ComparingLevel)
             {
-                lvlorstat = Strings.EventConditionDesc.level;
+                lvlorstat = EventConditionDesc.level;
             }
             else
             {
-                lvlorstat = Strings.Combat.stats[(int) condition.Stat];
+                lvlorstat = Combat.stats[(int)condition.Stat];
             }
 
-            return Strings.EventConditionDesc.levelorstat.ToString(lvlorstat, pLvl);
+            return EventConditionDesc.levelorstat.ToString(lvlorstat, pLvl);
         }
 
         public static string GetEventConditionalDesc(SelfSwitchCondition condition)
         {
-            var sValue = Strings.EventConditionDesc.False;
+            var sValue = EventConditionDesc.False;
             if (condition.Value)
             {
-                sValue = Strings.EventConditionDesc.True;
+                sValue = EventConditionDesc.True;
             }
 
-            return Strings.EventConditionDesc.selfswitch.ToString(
-                Strings.EventConditionDesc.selfswitches[condition.SwitchIndex], sValue
+            return EventConditionDesc.selfswitch.ToString(
+                EventConditionDesc.selfswitches[condition.SwitchIndex], sValue
             );
         }
 
@@ -136,11 +192,11 @@ namespace Intersect.Editor.Localization
         {
             if (condition.Access == Access.None)
             {
-                return Strings.EventConditionDesc.power.ToString(Strings.EventConditionDesc.modadmin);
+                return EventConditionDesc.power.ToString(EventConditionDesc.modadmin);
             }
             else
             {
-                return Strings.EventConditionDesc.power.ToString(Strings.EventConditionDesc.admin);
+                return EventConditionDesc.power.ToString(EventConditionDesc.admin);
             }
         }
 
@@ -164,7 +220,7 @@ namespace Intersect.Editor.Localization
             }
             else
             {
-                time1 = Strings.EventConditionDesc.timeinvalid;
+                time1 = EventConditionDesc.timeinvalid;
             }
 
             if (condition.Ranges[1] > -1 && condition.Ranges[1] < timeRanges.Count)
@@ -173,15 +229,15 @@ namespace Intersect.Editor.Localization
             }
             else
             {
-                time2 = Strings.EventConditionDesc.timeinvalid;
+                time2 = EventConditionDesc.timeinvalid;
             }
 
-            return Strings.EventConditionDesc.time.ToString(time1, time2);
+            return EventConditionDesc.time.ToString(time1, time2);
         }
 
         public static string GetEventConditionalDesc(CanStartQuestCondition condition)
         {
-            return Strings.EventConditionDesc.startquest.ToString(QuestBase.GetName(condition.QuestId));
+            return EventConditionDesc.startquest.ToString(QuestBase.GetName(condition.QuestId));
         }
 
         public static string GetEventConditionalDesc(QuestInProgressCondition condition)
@@ -199,66 +255,68 @@ namespace Intersect.Editor.Localization
                 }
 
                 var taskName = task != null
-                    ? task.GetTaskString(Strings.TaskEditor.descriptions)
-                    : Strings.EventConditionDesc.tasknotfound.ToString();
+                    ? task.GetTaskString(TaskEditor.descriptions)
+                    : EventConditionDesc.tasknotfound.ToString();
 
                 switch (condition.Progress)
                 {
                     case QuestProgressState.BeforeTask:
-                        return Strings.EventConditionDesc.questinprogress.ToString(
+                        return EventConditionDesc.questinprogress.ToString(
                             QuestBase.GetName(condition.QuestId),
-                            Strings.EventConditionDesc.beforetask.ToString(taskName)
+                            EventConditionDesc.beforetask.ToString(taskName)
                         );
                     case QuestProgressState.AfterTask:
-                        return Strings.EventConditionDesc.questinprogress.ToString(
+                        return EventConditionDesc.questinprogress.ToString(
                             QuestBase.GetName(condition.QuestId),
-                            Strings.EventConditionDesc.aftertask.ToString(taskName)
+                            EventConditionDesc.aftertask.ToString(taskName)
                         );
                     case QuestProgressState.OnTask:
-                        return Strings.EventConditionDesc.questinprogress.ToString(
-                            QuestBase.GetName(condition.QuestId), Strings.EventConditionDesc.ontask.ToString(taskName)
+                        return EventConditionDesc.questinprogress.ToString(
+                            QuestBase.GetName(condition.QuestId), EventConditionDesc.ontask.ToString(taskName)
                         );
                     default: //On Any task
-                        return Strings.EventConditionDesc.questinprogress.ToString(
-                            QuestBase.GetName(condition.QuestId), Strings.EventConditionDesc.onanytask
+                        return EventConditionDesc.questinprogress.ToString(
+                            QuestBase.GetName(condition.QuestId), EventConditionDesc.onanytask
                         );
                 }
             }
 
-            return Strings.EventConditionDesc.questinprogress.ToString(QuestBase.GetName(condition.QuestId));
+            return EventConditionDesc.questinprogress.ToString(QuestBase.GetName(condition.QuestId));
         }
 
         public static string GetEventConditionalDesc(QuestCompletedCondition condition)
         {
-            return Strings.EventConditionDesc.questcompleted.ToString(QuestBase.GetName(condition.QuestId));
+            return EventConditionDesc.questcompleted.ToString(QuestBase.GetName(condition.QuestId));
         }
 
         public static string GetEventConditionalDesc(NoNpcsOnMapCondition condition)
         {
-            return Strings.EventConditionDesc.nonpcsonmap;
+            return condition.SpecificNpc ?
+                EventConditionDesc.NoNpcsOfTypeOnMap.ToString(NpcBase.GetName(condition.NpcId)) :
+                EventConditionDesc.NoNpcsOnMap.ToString();
         }
 
         public static string GetEventConditionalDesc(GenderIsCondition condition)
         {
-            return Strings.EventConditionDesc.gender.ToString(
-                condition.Gender == 0 ? Strings.EventConditionDesc.male : Strings.EventConditionDesc.female
+            return EventConditionDesc.gender.ToString(
+                condition.Gender == 0 ? EventConditionDesc.male : EventConditionDesc.female
             );
         }
 
         public static string GetEventConditionalDesc(MapIsCondition condition)
         {
-            var map = Intersect.GameObjects.Maps.MapList.MapList.List.FindMap(condition.MapId);
+            var map = GameObjects.Maps.MapList.MapList.List.FindMap(condition.MapId);
             if (map != null)
             {
-                return Strings.EventConditionDesc.map.ToString(map.Name);
+                return EventConditionDesc.map.ToString(map.Name);
             }
 
-            return Strings.EventConditionDesc.map.ToString(EventConditionDesc.mapnotfound);
+            return EventConditionDesc.map.ToString(EventConditionDesc.mapnotfound);
         }
 
         public static string GetEventConditionalDesc(InGuildWithRank condition)
         {
-            return Strings.EventConditionDesc.guild.ToString(Intersect.Options.Instance.Guild.Ranks[Math.Max(0, Math.Min(Intersect.Options.Instance.Guild.Ranks.Length - 1, condition.Rank))].Title);
+            return EventConditionDesc.guild.ToString(Intersect.Options.Instance.Guild.Ranks[Math.Max(0, Math.Min(Intersect.Options.Instance.Guild.Ranks.Length - 1, condition.Rank))].Title);
         }
 
         public static string GetEventConditionalDesc(HasFreeInventorySlots condition)
@@ -269,24 +327,32 @@ namespace Intersect.Editor.Localization
                 switch (condition.VariableType)
                 {
                     case VariableTypes.PlayerVariable:
-                        amount = string.Format(@"({0}: {1})", Strings.EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
+                        amount = string.Format(@"({0}: {1})", EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
                         break;
                     case VariableTypes.ServerVariable:
-                        amount = string.Format(@"({0}: {1})", Strings.EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
+                        amount = string.Format(@"({0}: {1})", EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
+                        break;
+                    case VariableTypes.GuildVariable:
+                        amount = string.Format(@"({0}: {1})", EventConditional.guildvariable, GuildVariableBase.GetName(condition.VariableId));
                         break;
                 }
 
-                return Strings.EventConditionDesc.HasFreeInventorySlots.ToString(amount);
+                return EventConditionDesc.HasFreeInventorySlots.ToString(amount);
             }
             else
             {
-                return Strings.EventConditionDesc.HasFreeInventorySlots.ToString(condition.Quantity);
+                return EventConditionDesc.HasFreeInventorySlots.ToString(condition.Quantity);
             }
         }
 
         public static string GetEventConditionalDesc(MapZoneTypeIs condition)
         {
-            return Strings.EventConditionDesc.MapZoneTypeIs.ToString(Strings.MapProperties.zones[(int)condition.ZoneType]);
+            return EventConditionDesc.MapZoneTypeIs.ToString(MapProperties.zones[(int)condition.ZoneType]);
+        }
+
+        public static string GetEventConditionalDesc(CheckEquippedSlot condition)
+        {
+            return EventConditionDesc.checkequippedslot.ToString(condition.Name);
         }
 
         public static string GetVariableComparisonString(VariableCompaison comparison)
@@ -307,25 +373,31 @@ namespace Intersect.Editor.Localization
             {
                 if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
                 {
-                    value = Strings.EventConditionDesc.playervariablevalue.ToString(
+                    value = EventConditionDesc.playervariablevalue.ToString(
                         PlayerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
                 else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
                 {
-                    value = Strings.EventConditionDesc.globalvariablevalue.ToString(
+                    value = EventConditionDesc.globalvariablevalue.ToString(
                         ServerVariableBase.GetName(comparison.CompareVariableId)
+                    );
+                }
+                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                {
+                    value = EventConditionDesc.guildvariablevalue.ToString(
+                        GuildVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
             }
 
             if (comparison.ComparingEqual)
             {
-                pVar = Strings.EventConditionDesc.equal.ToString(value);
+                pVar = EventConditionDesc.equal.ToString(value);
             }
             else
             {
-                pVar = Strings.EventConditionDesc.notequal.ToString(value);
+                pVar = EventConditionDesc.notequal.ToString(value);
             }
 
             return pVar;
@@ -344,14 +416,20 @@ namespace Intersect.Editor.Localization
             {
                 if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
                 {
-                    value = Strings.EventConditionDesc.playervariablevalue.ToString(
+                    value = EventConditionDesc.playervariablevalue.ToString(
                         PlayerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
                 else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
                 {
-                    value = Strings.EventConditionDesc.globalvariablevalue.ToString(
+                    value = EventConditionDesc.globalvariablevalue.ToString(
                         ServerVariableBase.GetName(comparison.CompareVariableId)
+                    );
+                }
+                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                {
+                    value = EventConditionDesc.guildvariablevalue.ToString(
+                        GuildVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
             }
@@ -359,27 +437,27 @@ namespace Intersect.Editor.Localization
             switch (comparison.Comparator)
             {
                 case VariableComparators.Equal:
-                    pVar = Strings.EventConditionDesc.equal.ToString(value);
+                    pVar = EventConditionDesc.equal.ToString(value);
 
                     break;
                 case VariableComparators.GreaterOrEqual:
-                    pVar = Strings.EventConditionDesc.greaterequal.ToString(value);
+                    pVar = EventConditionDesc.greaterequal.ToString(value);
 
                     break;
                 case VariableComparators.LesserOrEqual:
-                    pVar = Strings.EventConditionDesc.lessthanequal.ToString(value);
+                    pVar = EventConditionDesc.lessthanequal.ToString(value);
 
                     break;
                 case VariableComparators.Greater:
-                    pVar = Strings.EventConditionDesc.greater.ToString(value);
+                    pVar = EventConditionDesc.greater.ToString(value);
 
                     break;
                 case VariableComparators.Less:
-                    pVar = Strings.EventConditionDesc.lessthan.ToString(value);
+                    pVar = EventConditionDesc.lessthan.ToString(value);
 
                     break;
                 case VariableComparators.NotEqual:
-                    pVar = Strings.EventConditionDesc.notequal.ToString(value);
+                    pVar = EventConditionDesc.notequal.ToString(value);
 
                     break;
             }
@@ -392,143 +470,265 @@ namespace Intersect.Editor.Localization
             switch (comparison.Comparator)
             {
                 case StringVariableComparators.Equal:
-                    return Strings.EventConditionDesc.equal.ToString(comparison.Value);
+                    return EventConditionDesc.equal.ToString(comparison.Value);
                 case StringVariableComparators.Contains:
-                    return Strings.EventConditionDesc.contains.ToString(comparison.Value);
+                    return EventConditionDesc.contains.ToString(comparison.Value);
             }
 
             return "";
         }
 
+        private static void SynchronizeConfigurableStrings()
+        {
+            if (Intersect.Options.Instance == default)
+            {
+                return;
+            }
+
+            for (var rarityCode = 0; rarityCode < Intersect.Options.Instance.Items.RarityTiers.Count; rarityCode++)
+            {
+                var rarityName = Intersect.Options.Instance.Items.RarityTiers[rarityCode];
+                if (!ItemEditor.rarity.ContainsKey(rarityName))
+                {
+                    ItemEditor.rarity[rarityName] = $"{rarityCode}:{rarityName}";
+                }
+            }
+        }
+
+        private static void PostLoad()
+        {
+        }
+
         public static void Load()
         {
-            if (File.Exists(Path.Combine("resources", "editor_strings.json")))
+            SynchronizeConfigurableStrings();
+
+            try
             {
-                var strings = new Dictionary<string, Dictionary<string, object>>();
-                strings = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(
-                    File.ReadAllText(Path.Combine("resources", "editor_strings.json"))
+                var serialized = new Dictionary<string, Dictionary<string, object>>();
+                serialized = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(
+                    File.ReadAllText(Path.Combine("resources", StringsFileName))
                 );
 
-                var type = typeof(Strings);
-
-                var fields = new List<Type>();
-                fields.AddRange(
-                    type.GetNestedTypes(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public)
-                );
-
-                foreach (var p in fields)
+                var rootType = typeof(Strings);
+                var groupTypes = rootType.GetNestedTypes(BindingFlags.Static | BindingFlags.Public);
+                var missingStrings = new List<string>();
+                foreach (var groupType in groupTypes)
                 {
-                    if (!strings.ContainsKey(p.Name))
+                    if (!serialized.TryGetValue(groupType.Name, out var serializedGroup))
                     {
+                        missingStrings.Add($"{groupType.Name}");
+                        serialized[groupType.Name] = SerializeGroup(groupType);
                         continue;
                     }
 
-                    var dict = strings[p.Name];
-                    foreach (var fieldInfo in p.GetFields(
-                        System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public
-                    ))
+                    foreach (var fieldInfo in groupType.GetFields(BindingFlags.Public | BindingFlags.Static))
                     {
                         var fieldValue = fieldInfo.GetValue(null);
-                        if (!dict.ContainsKey(fieldInfo.Name.ToLower()))
+                        if (!serializedGroup.TryGetValue(fieldInfo.Name, out var serializedValue))
                         {
-                            continue;
-                        }
-
-                        if (fieldValue is LocalizedString)
-                        {
-                            fieldInfo.SetValue(null, new LocalizedString((string) dict[fieldInfo.Name.ToLower()]));
-                        }
-                        else if (fieldValue is Dictionary<int, LocalizedString>)
-                        {
-                            var existingDict = (Dictionary<int, LocalizedString>) fieldInfo.GetValue(null);
-                            var values = ((JObject) dict[fieldInfo.Name]).ToObject<Dictionary<int, string>>();
-                            var dic = values.ToDictionary<KeyValuePair<int, string>, int, LocalizedString>(
-                                val => val.Key, val => val.Value
-                            );
-
-                            foreach (var val in dic)
+                            var foundKey = serializedGroup.Keys.FirstOrDefault(key => string.Equals(fieldInfo.Name, key, StringComparison.OrdinalIgnoreCase));
+                            if (foundKey != default)
                             {
-                                existingDict[val.Key] = val.Value;
+                                _ = serializedGroup.TryGetValue(foundKey, out serializedValue);
                             }
                         }
-                        else if (fieldValue is Dictionary<string, LocalizedString>)
-                        {
-                            var existingDict = (Dictionary<string, LocalizedString>) fieldInfo.GetValue(null);
-                            var pairs = ((JObject) dict[fieldInfo.Name])?.ToObject<Dictionary<string, string>>() ??
-                                        new Dictionary<string, string>();
 
-                            foreach (var pair in pairs)
-                            {
-                                if (pair.Key == null)
+                        switch (fieldValue)
+                        {
+                            case LocalizedString localizedString:
+                                var jsonString = (string)serializedValue;
+                                if (jsonString == default)
                                 {
-                                    continue;
+                                    Log.Warn($"{groupType.Name}.{fieldInfo.Name} is null.");
+                                    missingStrings.Add($"{groupType.Name}.{fieldInfo.Name} (string)");
+                                    serializedGroup[fieldInfo.Name] = (string)localizedString;
                                 }
+                                else
+                                {
+                                    fieldInfo.SetValue(null, new LocalizedString(jsonString));
+                                }
+                                break;
 
-                                existingDict[pair.Key.ToLower()] = pair.Value;
-                            }
+                            case Dictionary<int, LocalizedString> intDictionary:
+                                DeserializeDictionary(missingStrings, groupType, fieldInfo, fieldValue, serializedGroup, serializedValue, intDictionary);
+                                break;
+
+                            case Dictionary<string, LocalizedString> stringDictionary:
+                                DeserializeDictionary(missingStrings, groupType, fieldInfo, fieldValue, serializedGroup, serializedValue, stringDictionary);
+                                break;
+
+                            default:
+                                {
+                                    var fieldType = fieldInfo.FieldType;
+                                    if (!fieldType.IsGenericType || typeof(Dictionary<,>) != fieldType.GetGenericTypeDefinition())
+                                    {
+                                        Log.Error(new NotSupportedException($"Unsupported localization type for {groupType.Name}.{fieldInfo.Name}: {fieldInfo.FieldType.FullName}"));
+                                        break;
+                                    }
+
+                                    var parameters = fieldType.GenericTypeArguments;
+                                    var localizedParameterType = parameters.Last();
+                                    if (localizedParameterType != typeof(LocalizedString))
+                                    {
+                                        Log.Error(new NotSupportedException($"Unsupported localization dictionary value type for {groupType.Name}.{fieldInfo.Name}: {localizedParameterType.FullName}"));
+                                        break;
+                                    }
+
+                                    _ = _methodInfoDeserializeDictionary.MakeGenericMethod(parameters.First()).Invoke(default, new object[]
+                                    {
+                                                missingStrings,
+                                                groupType,
+                                                fieldInfo,
+                                                fieldValue,
+                                                serializedGroup,
+                                                serializedValue,
+                                                fieldValue
+                                    });
+                                    break;
+                                }
                         }
                     }
                 }
+
+                if (missingStrings.Count > 0)
+                {
+                    Log.Warn($"Missing strings, overwriting strings file:\n\t{string.Join(",\n\t", missingStrings)}");
+                    SaveSerialized(serialized);
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.Warn(exception);
+                Save();
             }
 
-            Save();
+            PostLoad();
         }
 
-        public static void Save()
+        private static readonly MethodInfo _methodInfoDeserializeDictionary = typeof(Strings).GetMethod(
+                                                nameof(DeserializeDictionary),
+                                                BindingFlags.NonPublic | BindingFlags.Static
+                                            ) ?? throw new InvalidOperationException();
+
+        private static void DeserializeDictionary<TKey>(
+            List<string> missingStrings,
+            Type groupType,
+            FieldInfo fieldInfo,
+            object fieldValue,
+            Dictionary<string, object> serializedGroup,
+            object serializedValue,
+            Dictionary<TKey, LocalizedString> dictionary
+        )
         {
-            var strings = new Dictionary<string, Dictionary<string, object>>();
-            var type = typeof(Strings);
-            var fields = type.GetNestedTypes(
-                System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public
-            );
-
-            foreach (var p in fields)
+            var serializedDictionary = serializedValue as JObject;
+            var serializedField = JToken.FromObject(fieldValue);
+            if (serializedValue == default)
             {
-                var dict = new Dictionary<string, object>();
-                foreach (var p1 in p.GetFields(
-                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public
-                ))
-                {
-                    if (p1.GetValue(null).GetType() == typeof(LocalizedString))
-                    {
-                        dict.Add(p1.Name.ToLower(), ((LocalizedString) p1.GetValue(null)).ToString());
-                    }
-                    else if (p1.GetValue(null).GetType() == typeof(Dictionary<int, LocalizedString>))
-                    {
-                        var dic = new Dictionary<int, string>();
-                        foreach (var val in (Dictionary<int, LocalizedString>) p1.GetValue(null))
-                        {
-                            dic.Add(val.Key, val.Value.ToString());
-                        }
-
-                        dict.Add(p1.Name, dic);
-                    }
-                    else if (p1.GetValue(null).GetType() == typeof(Dictionary<string, LocalizedString>))
-                    {
-                        var dic = new Dictionary<string, string>();
-                        foreach (var val in (Dictionary<string, LocalizedString>) p1.GetValue(null))
-                        {
-                            dic.Add(val.Key.ToLower(), val.Value.ToString());
-                        }
-
-                        dict.Add(p1.Name, dic);
-                    }
-                }
-
-                strings.Add(p.Name, dict);
+                missingStrings.Add($"{groupType.Name}.{fieldInfo.Name} (string dictionary)");
+                serializedGroup[fieldInfo.Name] = serializedField;
             }
+            else
+            {
+                var keys = dictionary.Keys.ToList();
+                foreach (var key in keys)
+                {
+                    var stringKey = key.ToString();
+                    if (!serializedDictionary.TryGetValue(stringKey, out var token) || token?.Type != JTokenType.String)
+                    {
+                        missingStrings.Add($"{groupType.Name}.{fieldInfo.Name}[{key}]");
+                        serializedDictionary[stringKey] = (string)dictionary[key];
+                        continue;
+                    }
 
+                    dictionary[key] = new LocalizedString((string)token);
+                }
+            }
+        }
+
+        private static Dictionary<string, string> SerializeDictionary<TKey>(Dictionary<TKey, LocalizedString> localizedDictionary)
+        {
+            return localizedDictionary.ToDictionary(
+                pair => pair.Key.ToString(),
+                pair => pair.Value.ToString()
+            );
+        }
+
+        private static Dictionary<string, object> SerializeGroup(Type groupType)
+        {
+            var serializedGroup = new Dictionary<string, object>();
+            foreach (var fieldInfo in groupType.GetFields(BindingFlags.Static | BindingFlags.Public))
+            {
+                switch (fieldInfo.GetValue(null))
+                {
+                    case LocalizedString localizedString:
+                        serializedGroup.Add(fieldInfo.Name, localizedString.ToString());
+                        break;
+
+                    case Dictionary<int, LocalizedString> localizedIntKeyDictionary:
+                        serializedGroup.Add(fieldInfo.Name, SerializeDictionary(localizedIntKeyDictionary));
+                        break;
+
+                    case Dictionary<string, LocalizedString> localizedStringKeyDictionary:
+                        serializedGroup.Add(fieldInfo.Name, SerializeDictionary(localizedStringKeyDictionary));
+                        break;
+
+                    case Dictionary<ChatboxTab, LocalizedString> localizedChatboxTabKeyDictionary:
+                        serializedGroup.Add(fieldInfo.Name, SerializeDictionary(localizedChatboxTabKeyDictionary));
+                        break;
+                }
+            }
+            return serializedGroup;
+        }
+
+        private static void SaveSerialized(Dictionary<string, Dictionary<string, object>> serialized)
+        {
             var languageDirectory = Path.Combine("resources");
             if (Directory.Exists(languageDirectory))
             {
                 File.WriteAllText(
-                    Path.Combine(languageDirectory, "editor_strings.json"),
-                    JsonConvert.SerializeObject(strings, Formatting.Indented)
+                    Path.Combine(languageDirectory, StringsFileName),
+                    JsonConvert.SerializeObject(serialized, Formatting.Indented)
                 );
             }
         }
 
-        public struct About
+        public static void Save()
+        {
+            var serialized = new Dictionary<string, Dictionary<string, object>>();
+            var rootType = typeof(Strings);
+            var groupTypes = rootType.GetNestedTypes(BindingFlags.Static | BindingFlags.Public);
+
+            foreach (var groupType in groupTypes)
+            {
+                var serializedGroup = new Dictionary<string, object>();
+                foreach (var fieldInfo in groupType.GetFields(BindingFlags.Static | BindingFlags.Public))
+                {
+                    switch (fieldInfo.GetValue(null))
+                    {
+                        case LocalizedString localizedString:
+                            serializedGroup.Add(fieldInfo.Name, localizedString.ToString());
+                            break;
+
+                        case Dictionary<int, LocalizedString> localizedIntKeyDictionary:
+                            serializedGroup.Add(fieldInfo.Name, localizedIntKeyDictionary.ToDictionary(pair => pair.Key, pair => pair.Value.ToString()));
+                            break;
+
+                        case Dictionary<string, LocalizedString> localizedStringKeyDictionary:
+                            serializedGroup.Add(fieldInfo.Name, localizedStringKeyDictionary.ToDictionary(pair => pair.Key, pair => pair.Value.ToString()));
+                            break;
+                    }
+                }
+
+                serialized.Add(groupType.Name, serializedGroup);
+            }
+
+            SaveSerialized(serialized);
+        }
+
+        public static Localizer Localizer { get; } = new Localizer();
+
+        public partial struct About
         {
 
             public static LocalizedString site =
@@ -540,7 +740,7 @@ namespace Intersect.Editor.Localization
 
         }
 
-        public struct AnimationEditor
+        public partial struct AnimationEditor
         {
 
             public static LocalizedString animations = @"Animations";
@@ -656,92 +856,145 @@ namespace Intersect.Editor.Localization
 
         }
 
-        public struct Attributes
+        public partial struct Attributes
         {
+            public static Dictionary<int, LocalizedString> AttributeTypes = new Dictionary<int, LocalizedString>
+            {
+                {(int) MapAttributes.Animation, @"Map Animation" },
+                {(int) MapAttributes.Blocked, @"Blocked" },
+                {(int) MapAttributes.Critter, @"Critter" },
+                {(int) MapAttributes.GrappleStone, @"Grapple Stone" },
+                {(int) MapAttributes.Item, @"Item Spawn" },
+                {(int) MapAttributes.NpcAvoid, @"Npc Avoid" },
+                {(int) MapAttributes.Resource, @"Resource Spawn" },
+                {(int) MapAttributes.Slide, @"Slide" },
+                {(int) MapAttributes.Sound, @"Map Sound" },
+                {(int) MapAttributes.Walkable, @"Walkable" },
+                {(int) MapAttributes.Warp, @"Warp" },
+                {(int) MapAttributes.ZDimension, @"Z-Dimension" },
+            };
 
-            public static LocalizedString animation = @"Animation:";
+            public static string FormatSpawnLevel(int level)
+            {
+                switch (level)
+                {
+                    case 0: return ZLevel1;
+                    case 1: return ZLevel2;
+                    default: throw new ArgumentOutOfRangeException(nameof(level));
+                }
+            }
 
-            public static LocalizedString blocked = @"Blocked";
+            public static string FormatZLevel(int level)
+            {
+                switch (level)
+                {
+                    case 0: return ZNone;
+                    case 1: return ZLevel1;
+                    case 2: return ZLevel2;
+                    default: throw new ArgumentOutOfRangeException(nameof(level));
+                }
+            }
 
-            public static LocalizedString critter = @"Critter";
+            public static LocalizedString Animation = @"Animation";
 
-            public static Dictionary<int, LocalizedString> crittermovements = new Dictionary<int, LocalizedString>
+            public static LocalizedString AttributeType = @"Attribute Type";
+
+            public static LocalizedString Blocked = @"Blocked";
+
+            public static LocalizedString Critter = @"Critter";
+
+            public static Dictionary<int, LocalizedString> CritterMovements = new Dictionary<int, LocalizedString>
             {
                 {0, @"Move Randomly"},
                 {1, @"Turn Randomly"},
                 {2, @"Stand Still"},
             };
 
-            public static Dictionary<int, LocalizedString> critterlayers = new Dictionary<int, LocalizedString>
+            public static Dictionary<int, LocalizedString> CritterLayers = new Dictionary<int, LocalizedString>
             {
                 {0, @"Below Player"},
                 {1, @"Same as Player"},
                 {2, @"Above Player"},
             };
 
-            public static LocalizedString crittersprite = @"Sprite:";
+            public static LocalizedString CritterSprite = @"Sprite";
 
-            public static LocalizedString critteranimation = @"Animation:";
+            public static LocalizedString CritterAnimation = @"Animation";
 
-            public static LocalizedString crittermovement = @"Movement:";
+            public static LocalizedString CritterMovement = @"Movement";
 
-            public static LocalizedString critterlayer = @"Layer:";
+            public static LocalizedString CritterLayer = @"Layer";
 
-            public static LocalizedString critterspeed = @"Speed (ms):";
+            public static LocalizedString CritterSpeed = @"Speed (ms)";
 
-            public static LocalizedString critterfrequency = @"Freq (ms):";
+            public static LocalizedString CritterFrequency = @"Frequency (ms)";
 
-            public static LocalizedString critterignorenpcavoids = @"Ignore Npc Avoids";
+            public static LocalizedString CritterIgnoreNpcAvoids = @"Ignore Npc Avoids";
 
-            public static LocalizedString critterblockplayers = @"Block Players";
+            public static LocalizedString CritterBlockPlayers = @"Block Players";
 
-            public static LocalizedString critterdirection = @"Direction:";
+            public static LocalizedString CritterDirection = @"Direction";
 
-            public static LocalizedString dir = @"Dir:";
+            public static LocalizedString Direction = @"Direction";
 
-            public static LocalizedString distance = @"Distance (In Tiles):";
+            public static LocalizedString Distance = @"Distance (In Tiles)";
 
-            public static LocalizedString grapple = @"Grapple Stone";
+            public static LocalizedString DistanceFormat = @"{00} tiles";
 
-            public static LocalizedString item = @"Item:";
+            public static LocalizedString Grapple = @"Grapple Stone";
 
-            public static LocalizedString itemspawn = @"Item Spawn";
+            public static LocalizedString Item = @"Item";
 
-            public static LocalizedString mapanimation = @"Animation";
+            public static LocalizedString ItemSpawn = @"Item Spawn";
 
-            public static LocalizedString mapanimationblock = @"Block Tile";
+            public static LocalizedString Map = @"Map";
 
-            public static LocalizedString mapsound = @"Map Sound";
+            public static LocalizedString MapAnimation = @"Animation";
 
-            public static LocalizedString npcavoid = @"NPC Avoid";
+            public static LocalizedString MapAnimationBlock = @"Block Tile";
 
-            public static LocalizedString quantity = @"Quantity:";
+            public static LocalizedString MapSound = @"Map Sound";
 
-            public static LocalizedString resource = @"Resource:";
+            public static LocalizedString NpcAvoid = @"NPC Avoid";
 
-            public static LocalizedString resourcespawn = @"Resource";
+            public static LocalizedString Quantity = @"Quantity";
 
-            public static LocalizedString slide = @"Slide";
+            public static LocalizedString Resource = @"Resource";
 
-            public static LocalizedString sound = @"Sound:";
+            public static LocalizedString ResourceSpawn = @"Resource";
 
-            public static LocalizedString warp = @"Warp";
+            public static LocalizedString Slide = @"Slide";
 
-            public static LocalizedString zblock = @"Block";
+            public static LocalizedString Sound = @"Sound";
 
-            public static LocalizedString zdimension = @"Z-Dimension";
+            public static LocalizedString SoundDistance = @"Distance";
 
-            public static LocalizedString zgateway = @"Gateway";
+            public static LocalizedString SoundInterval = @"Loop Interval";
 
-            public static LocalizedString zlevel1 = @"Level 1";
+            public static LocalizedString Warp = @"Warp";
 
-            public static LocalizedString zlevel2 = @"Level 2";
+            public static LocalizedString WarpX = @"X";
 
-            public static LocalizedString znone = @"None";
+            public static LocalizedString WarpY = @"Y";
 
+            public static LocalizedString WarpDirection = @"Direction";
+
+            public static LocalizedString WarpSound = @"Sound";
+
+            public static LocalizedString ZBlock = @"Block";
+
+            public static LocalizedString ZDimension = @"Z-Dimension";
+
+            public static LocalizedString ZGateway = @"Gateway";
+
+            public static LocalizedString ZLevel1 = @"Level 1";
+
+            public static LocalizedString ZLevel2 = @"Level 2";
+
+            public static LocalizedString ZNone = @"None";
         }
 
-        public struct ClassEditor
+        public partial struct ClassEditor
         {
 
             public static LocalizedString abilitypowerboost = @"Ability Pwr (+{00}):";
@@ -941,7 +1194,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Colors
+        public partial struct Colors
         {
 
             public static Dictionary<int, LocalizedString> presets = new Dictionary<int, LocalizedString>
@@ -961,7 +1214,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Combat
+        public partial struct Combat
         {
 
             public static Dictionary<int, LocalizedString> damagetypes = new Dictionary<int, LocalizedString>
@@ -990,7 +1243,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct CommonEventEditor
+        public partial struct CommonEventEditor
         {
 
             public static LocalizedString copy = @"Copy Event";
@@ -1026,7 +1279,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct CraftingTableEditor
+        public partial struct CraftingTableEditor
         {
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -1101,7 +1354,7 @@ Tick timer saved in server config.json.";
             public static LocalizedString remove = @"Remove Selected";
         }
 
-        public struct CraftsEditor
+        public partial struct CraftsEditor
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1127,6 +1380,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString duplicateingredient = @"Duplicate";
 
+            public static LocalizedString FailureChance = @"Failure (%):";
+
             public static LocalizedString folderlabel = @"Folder:";
 
             public static LocalizedString foldertitle = @"Add Folder";
@@ -1146,6 +1401,10 @@ Tick timer saved in server config.json.";
             public static LocalizedString ingredients = @"Ingredients";
 
             public static LocalizedString item = @"Item:";
+
+            public static LocalizedString ItemLossChance = @"Item Loss (%):";
+
+            public static LocalizedString Requirements = @"Craft Requirements";
 
             public static LocalizedString name = @"Name:";
 
@@ -1172,14 +1431,22 @@ Tick timer saved in server config.json.";
                 @"Are you sure you want to undo changes made to this craft? This action cannot be reverted!";
 
             public static LocalizedString undotitle = @"Undo Changes";
-            
+
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString commonevent = @"Common Event:";
 
         }
 
-        public struct Directions
+        public partial struct Directions
         {
+            public static Dictionary<int, LocalizedString> CritterDirections = new Dictionary<int, LocalizedString>()
+            {
+                {0, @"Random"},
+                {1, @"Up"},
+                {2, @"Down"},
+                {3, @"Left"},
+                {4, @"Right"}
+            };
 
             public static Dictionary<int, LocalizedString> dir = new Dictionary<int, LocalizedString>()
             {
@@ -1190,9 +1457,17 @@ Tick timer saved in server config.json.";
                 {3, @"Right"}
             };
 
+            public static Dictionary<int, LocalizedString> WarpDirections = new Dictionary<int, LocalizedString>()
+            {
+                {(int)WarpDirection.Retain, @"Retain Direction"},
+                {(int)WarpDirection.Up, @"Up"},
+                {(int)WarpDirection.Down, @"Down"},
+                {(int)WarpDirection.Left, @"Left"},
+                {(int)WarpDirection.Right, @"Right"}
+            };
         }
 
-        public struct DynamicRequirements
+        public partial struct DynamicRequirements
         {
 
             public static LocalizedString addcondition = @"Add Condition";
@@ -1206,6 +1481,9 @@ Tick timer saved in server config.json.";
             public static LocalizedString conditionlist = @"Conditiond";
 
             public static LocalizedString conditionlists = @"Condition Lists";
+
+            public static LocalizedString instructionscraft =
+                @"Below are condition lists. If conditions are met on any of the lists then the player can craft this item.";
 
             public static LocalizedString instructionsevent =
                 @"Below are condition lists. If conditions are met on any of the lists then the event can spawn/run.";
@@ -1246,7 +1524,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Errors
+        public partial struct Errors
         {
 
             public static LocalizedString disconnected = @"Disconnected!";
@@ -1258,6 +1536,10 @@ Tick timer saved in server config.json.";
                 @"You have been disconnected from the server! Would you like to export this map before closing this editor?";
 
             public static LocalizedString disconnectedsavecaption = @"Disconnected -- Export Map?";
+
+            public static LocalizedString InvalidDirectory = @"You have selected an invalid directory, would you like to try again?";
+
+            public static LocalizedString InvalidDirectoryCaption = @"Invalid Directory";
 
             public static LocalizedString importfailed =
                 @"Cannot import map. Currently selected map is not an Intersect map file or was exported with a different version of the Intersect editor!";
@@ -1271,7 +1553,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeFace
+        public partial struct EventChangeFace
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1284,7 +1566,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventShowPicture
+        public partial struct EventShowPicture
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1313,7 +1595,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeGender
+        public partial struct EventChangeGender
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1332,7 +1614,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeItems
+        public partial struct EventChangeItems
         {
 
             public static LocalizedString action = @"Action:";
@@ -1360,6 +1642,9 @@ Tick timer saved in server config.json.";
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString ServerVariable = @"Global Variable";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString GuildVariable = @"Guild Variable";
+
             public static LocalizedString cancel = @"Cancel";
 
             public static LocalizedString item = @"Item:";
@@ -1381,7 +1666,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventEquipItems
+        public partial struct EventEquipItems
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1396,7 +1681,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeVital
+        public partial struct EventChangeVital
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1411,7 +1696,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeLevel
+        public partial struct EventChangeLevel
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1424,7 +1709,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeNameColor
+        public partial struct EventChangeNameColor
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1441,7 +1726,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeName
+        public partial struct EventChangeName
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1454,7 +1739,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeSpells
+        public partial struct EventChangeSpells
         {
 
             public static LocalizedString action = @"Action: ";
@@ -1475,7 +1760,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangeSprite
+        public partial struct EventChangeSprite
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1488,7 +1773,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChangePlayerLabel
+        public partial struct EventChangePlayerLabel
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1515,7 +1800,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventChatboxText
+        public partial struct EventChatboxText
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1524,9 +1809,11 @@ Tick timer saved in server config.json.";
 
             public static Dictionary<int, LocalizedString> channels = new Dictionary<int, LocalizedString>
             {
-                {0, @"Player"},
+                {0, @"Player / System"},
                 {1, @"Local"},
                 {2, @"Global"},
+                {3, @"Party"},
+                {4, @"Guild"},
             };
 
             public static LocalizedString color = @"Color:";
@@ -1541,7 +1828,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventCommandList
+        public partial struct EventCommandList
         {
 
             public static LocalizedString addvariable = @"Add {00}";
@@ -1598,29 +1885,43 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString dupplayervariable = @"Player Variable: {00}'s Value";
 
+            public static LocalizedString dupguildvariable = @"Guild Variable: {00}'s Value";
+
             public static LocalizedString addglobalvariable = @"Add Global Variable: {00}'s Value";
 
             public static LocalizedString addplayervariable = @"Add Player Variable: {00}'s Value";
+
+            public static LocalizedString addguildvariable = @"Add Guild Variable: {00}'s Value";
 
             public static LocalizedString subtractglobalvariable = @"Subtract Global Variable: {00}'s Value";
 
             public static LocalizedString subtractplayervariable = @"Subtract Player Variable: {00}'s Value";
 
+            public static LocalizedString subtractguildvariable = @"Subtract Guild Variable: {00}'s Value";
+
             public static LocalizedString multiplyglobalvariable = @"Multiply Global Variable: {00}'s Value";
 
             public static LocalizedString multiplyplayervariable = @"Multiply Player Variable: {00}'s Value";
+
+            public static LocalizedString multiplyguildvariable = @"Multiply Guild Variable: {00}'s Value";
 
             public static LocalizedString divideglobalvariable = @"Divide Global Variable: {00}'s Value";
 
             public static LocalizedString divideplayervariable = @"Divide Player Variable: {00}'s Value";
 
+            public static LocalizedString divideguildvariable = @"Divide Guild Variable: {00}'s Value";
+
             public static LocalizedString leftshiftglobalvariable = @"Left Bit Shift Global Variable: {00}'s Value";
 
             public static LocalizedString leftshiftplayervariable = @"Left Bit Shift Player Variable: {00}'s Value";
 
+            public static LocalizedString leftshiftguildvariable = @"Left Bit Shift Guild Variable: {00}'s Value";
+
             public static LocalizedString rightshiftglobalvariable = @"Right Bit Shift Global Variable: {00}'s Value";
 
             public static LocalizedString rightshiftplayervariable = @"Right Bit Shift Player Variable: {00}'s Value";
+
+            public static LocalizedString rightshiftguildvariable = @"Right Bit Shift Guild Variable: {00}'s Value";
 
             public static LocalizedString enditemchange = @"End Item Change";
 
@@ -1653,6 +1954,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString globalswitch = @"Set Global Switch {00} to {01}";
 
             public static LocalizedString globalvariable = @"Set Global Variable {00} ({01})";
+
+            public static LocalizedString guildvariable = @"Set Guild Variable {00} ({01})";
 
             public static LocalizedString gotolabel = @"Go to Label {00}";
 
@@ -1820,7 +2123,11 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString waitforroute = @"Wait for Move Route Completion of {00}";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString warp = @"Warp Player [Map: {00} X: {01} Y: {02} Dir: {03}]";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString InstancedWarp = @"Warp Player to {04} instance [Map: {00} X: {01} Y: {02} Dir: {03}]";
 
             public static LocalizedString whenoption = @"When [{00}]";
 
@@ -1861,7 +2168,7 @@ Tick timer saved in server config.json.";
             public static LocalizedString resetstatpointallocations = @"Reset Player Stat Point Allocations";
         }
 
-        public struct EventChangePlayerColor
+        public partial struct EventChangePlayerColor
         {
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Cancel = @"Cancel";
@@ -1886,7 +2193,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventCommands
+        public partial struct EventCommands
         {
 
             public static Dictionary<string, LocalizedString> commands = new Dictionary<string, LocalizedString>()
@@ -1962,7 +2269,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventCompleteQuestTask
+        public partial struct EventCompleteQuestTask
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -1977,7 +2284,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventConditional
+        public partial struct EventConditional
         {
 
             public static LocalizedString and = @"And";
@@ -1995,6 +2302,10 @@ Tick timer saved in server config.json.";
             public static LocalizedString cancel = @"Cancel";
 
             public static LocalizedString canstartquest = @"Can Start Quest";
+
+            public static LocalizedString EquipmentSlot = @"Slot";
+
+            public static LocalizedString CheckEquipment = @"Check Equipment";
 
             public static LocalizedString Class = @"Class:";
 
@@ -2026,20 +2337,21 @@ Tick timer saved in server config.json.";
                 {4, @"Has item..."},
                 {5, @"Class is..."},
                 {6, @"Knows spell..."},
-                {7, @"Level or Stat is...."},
-                {8, @"Self Switch is...."},
-                {9, @"Power level is...."},
-                {10, @"Time is between...."},
-                {11, @"Can Start Quest...."},
-                {12, @"Quest In Progress...."},
-                {13, @"Quest Completed...."},
-                {14, @"No NPCs on Map"},
+                {7, @"Level or Stat is..."},
+                {8, @"Self Switch is..."},
+                {9, @"Power level is..."},
+                {10, @"Time is between..."},
+                {11, @"Can Start Quest..."},
+                {12, @"Quest In Progress..."},
+                {13, @"Quest Completed..."},
+                {14, @"No NPCs on Map..."},
                 {15, @"Gender is..."},
                 {16, @"Map is..."},
                 {17, @"Item Equipped is..."},
                 {18, @"Has X free Inventory slots..." },
                 {19, @"In Guild With At Least Rank..." },
-                {20, @"Map Zone Type is..." }
+                {20, @"Map Zone Type is..." },
+                {21, @"Check Equipped Slot..." },
             };
 
             public static LocalizedString endrange = @"End Range:";
@@ -2057,6 +2369,10 @@ Tick timer saved in server config.json.";
             public static LocalizedString globalvariable = @"Global Variable";
 
             public static LocalizedString globalvariablevalue = @"Global Variable Value: ";
+
+            public static LocalizedString guildvariable = @"Guild Variable";
+
+            public static LocalizedString guildvariablevalue = @"Guild Variable Value: ";
 
             public static LocalizedString hasatleast = @"Has at least:";
 
@@ -2086,6 +2402,12 @@ Tick timer saved in server config.json.";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString HasElse = @"Has Else";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString NpcGroup = @"NPCs";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString NpcLabel = @"NPC:";
 
             public static LocalizedString numericvariable = @"Numeric Variable:";
 
@@ -2137,6 +2459,9 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString selfswitchis = @"Self Switch Is";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SpecificNpcCheck = @"Specify NPC?";
+
             public static LocalizedString spell = @"Spell:";
 
             public static LocalizedString startquest = @"Quest:";
@@ -2184,9 +2509,12 @@ Tick timer saved in server config.json.";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString MapZoneTypeLabel = @"Zone Type:";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString CheckBank = @"Check Bank?";
         }
 
-        public struct EventConditionDesc
+        public partial struct EventConditionDesc
         {
 
             public static LocalizedString admin = @"Admin";
@@ -2194,6 +2522,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString aftertask = @", After Task: {00}";
 
             public static LocalizedString beforetask = @", Before Task: {00}";
+
+            public static LocalizedString checkequippedslot = @"Player has slot {00} occupied";
 
             public static LocalizedString Class = @"Player's class is {00}";
 
@@ -2210,6 +2540,10 @@ Tick timer saved in server config.json.";
             public static LocalizedString globalvariable = @"Global Variable: {00} {01}";
 
             public static LocalizedString globalvariablevalue = @"Global Variable: {00}'s Value";
+
+            public static LocalizedString guildvariable = @"Guild Variable: {00} {01}";
+
+            public static LocalizedString guildvariablevalue = @"Guild Variable: {00}'s Value";
 
             public static LocalizedString greater = @"is greater than {00}";
 
@@ -2241,7 +2575,9 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString negated = @"NOT [{00}]";
 
-            public static LocalizedString nonpcsonmap = @"No NPCs on the map";
+            public static LocalizedString NoNpcsOnMap = @"No NPCs on the map";
+
+            public static LocalizedString NoNpcsOfTypeOnMap = @"No NPCs of type {00} on the map";
 
             public static LocalizedString notequal = @"does not equal {00}";
 
@@ -2289,7 +2625,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventCreateGuild
+        public partial struct EventCreateGuild
         {
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -2306,7 +2642,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventGuildSetBankSlotsCount
+        public partial struct EventGuildSetBankSlotsCount
         {
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -2319,6 +2655,9 @@ Tick timer saved in server config.json.";
             public static LocalizedString ServerVariable = @"Global Variable";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString GuildVariable = @"Guild Variable";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString cancel = @"Cancel";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -2328,7 +2667,7 @@ Tick timer saved in server config.json.";
             public static LocalizedString title = @"Set Guild Bank Slots Count";
         }
 
-        public struct EventEditor
+        public partial struct EventEditor
         {
 
             public static LocalizedString addcommand = @"Add Commands";
@@ -2360,6 +2699,9 @@ Tick timer saved in server config.json.";
                 {12, @"Guild Member Joined"},
                 {13, @"Guild Member Left"},
                 {14, @"Guild Member Kicked"},
+                {15, @"Guild Variable Changed"},
+                {16, @"Inventory Changed"},
+                {17, @"Map Changed"},
             };
 
             public static LocalizedString conditions = @"Conditions";
@@ -2414,6 +2756,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString inspectordesc = @"Inspector Description:";
 
             public static LocalizedString interactionfreeze = @"Interaction Freeze";
+
+            public static LocalizedString ignorenpcavoids = @"Ignore Npc Avoids";
 
             public static LocalizedString layer = @"Layer:";
 
@@ -2484,7 +2828,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventEndQuest
+        public partial struct EventEndQuest
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2499,7 +2843,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventGiveExperience
+        public partial struct EventGiveExperience
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2525,9 +2869,12 @@ Tick timer saved in server config.json.";
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString ServerVariable = @"Global Variable";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString GuildVariable = @"Guild Variable";
+
         }
 
-        public struct EventGotoLabel
+        public partial struct EventGotoLabel
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2540,7 +2887,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventGraphic
+        public partial struct EventGraphic
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2563,7 +2910,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventLabel
+        public partial struct EventLabel
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2576,7 +2923,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventMoveRoute
+        public partial struct EventMoveRoute
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2652,7 +2999,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventOpenCrafting
+        public partial struct EventOpenCrafting
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2665,7 +3012,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventOpenShop
+        public partial struct EventOpenShop
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2678,7 +3025,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventPlayAnimation
+        public partial struct EventPlayAnimation
         {
 
             public static LocalizedString animation = @"Animation:";
@@ -2709,7 +3056,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventPlayBgm
+        public partial struct EventPlayBgm
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2722,7 +3069,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventPlayBgs
+        public partial struct EventPlayBgs
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2735,7 +3082,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSelfSwitch
+        public partial struct EventSelfSwitch
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2760,7 +3107,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSetAccess
+        public partial struct EventSetAccess
         {
 
             public static LocalizedString access0 = @"Regular User";
@@ -2779,7 +3126,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSetAnimation
+        public partial struct EventSetAnimation
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2792,7 +3139,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSetClass
+        public partial struct EventSetClass
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2805,12 +3152,14 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSetVariable
+        public partial struct EventSetVariable
         {
 
             public static LocalizedString cancel = @"Cancel";
 
             public static LocalizedString global = @"Global Variable";
+
+            public static LocalizedString guild = @"Guild Variable";
 
             public static LocalizedString okay = @"Ok";
 
@@ -2830,6 +3179,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString booleanccloneglobalvariablevalue = @"Global Variable Value: ";
 
+            public static LocalizedString booleanccloneguildvariablevalue = @"Guild Variable Value: ";
+
             public static LocalizedString booleancloneplayervariablevalue = @"Player Variable Value: ";
 
             public static LocalizedString numericlabel = @"Integer Variable:";
@@ -2841,6 +3192,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString numericleftshift = @"LShift";
 
             public static LocalizedString numericcloneglobalvariablevalue = @"Global Variable Value: ";
+
+            public static LocalizedString numericcloneguildvariablevalue = @"Global Variable Value: ";
 
             public static LocalizedString numericcloneplayervariablevalue = @"Player Variable Value: ";
 
@@ -2878,7 +3231,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventShowOptions
+        public partial struct EventShowOptions
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2903,7 +3256,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventShowText
+        public partial struct EventShowText
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2920,7 +3273,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventInput
+        public partial struct EventInput
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2939,6 +3292,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString globalvariable = @"Global Variable";
 
+            public static LocalizedString guildvariable = @"Guild Variable";
+
             public static LocalizedString minval = @"Minimum Value";
 
             public static LocalizedString maxval = @"Maximum Value";
@@ -2949,7 +3304,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventSpawnNpc
+        public partial struct EventSpawnNpc
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2978,7 +3333,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventStartCommonEvent
+        public partial struct EventStartCommonEvent
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -2991,7 +3346,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventStartQuest
+        public partial struct EventStartQuest
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -3006,7 +3361,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventWait
+        public partial struct EventWait
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -3019,7 +3374,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventDropItem
+        public partial struct EventDropItem
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -3048,7 +3403,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventWaitForRouteCompletion
+        public partial struct EventWaitForRouteCompletion
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -3065,7 +3420,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct EventWarp
+        public partial struct EventWarp
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -3076,17 +3431,50 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct General
+        public partial struct General
         {
 
-            public static LocalizedString none = @"None";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString False = @"False";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Missing = @"Missing Translation";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString No = @"No";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString None = @"None";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString True = @"True";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Yes = @"Yes";
         }
 
-        public struct ItemEditor
+        public partial struct Time
+        {
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixDays = @"{00}d";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixHours = @"{00}h";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixMilliseconds = @"{00}ms";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixMinutes = @"{00}m";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixSeconds = @"{00}s";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SuffixWeeks = @"{00}w";
+        }
+
+        public partial struct ItemEditor
         {
 
             public static LocalizedString abilitypowerbonus = @"Ability Pwr:";
@@ -3115,6 +3503,10 @@ Tick timer saved in server config.json.";
             public static LocalizedString bagslots = @"Bag Slots:";
 
             public static LocalizedString basedamage = @"Base Damage:";
+
+            public static LocalizedString BlockChance = @"Block Chance (%):";
+            public static LocalizedString BlockAmount = @"Block Amount (%):";
+            public static LocalizedString BlockAbsorption = @"Block Damage Absorption (%):";
 
             public static LocalizedString bonusamount = @"Effect Amount (%):";
 
@@ -3256,14 +3648,14 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString price = @"Price:";
 
-            public static Dictionary<int, LocalizedString> rarity = new Dictionary<int, LocalizedString>
+            public static Dictionary<string, LocalizedString> rarity = new Dictionary<string, LocalizedString>
             {
-                {0, @"None"},
-                {1, @"Common"},
-                {2, @"Uncommon"},
-                {3, @"Rare"},
-                {4, @"Epic"},
-                {5, @"Legendary"},
+                {"None", @"None"},
+                {"Common", @"Common"},
+                {"Uncommon", @"Uncommon"},
+                {"Rare", @"Rare"},
+                {"Epic", @"Epic"},
+                {"Legendary", @"Legendary"},
             };
 
             public static LocalizedString projectile = @"Projectile:";
@@ -3337,11 +3729,13 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString vitalbonuses = @"Vital Bonuses";
 
+            public static LocalizedString ShieldProperties = @"Shield Properties:";
+
             public static LocalizedString weaponproperties = @"Weapon Properties";
 
         }
 
-        public struct LightEditor
+        public partial struct LightEditor
         {
 
             public static LocalizedString color = @"Color:";
@@ -3366,7 +3760,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Login
+        public partial struct Login
         {
 
             public static LocalizedString connected = @"Connected to server. Ready to login!";
@@ -3399,7 +3793,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct MainForm
+        public partial struct MainForm
         {
 
             public static LocalizedString about = @"About";
@@ -3412,7 +3806,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString commoneventeditor = @"Common Event Editor";
 
-            public static LocalizedString copy = @"Copy";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Copy = @"Copy (Ctrl + C)";
 
             public static LocalizedString craftingtableeditor = @"Crafting Table Editor";
 
@@ -3420,27 +3815,29 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString currentonly = @"Current Layer Only";
 
-            public static LocalizedString cut = @"Cut";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Cut = @"Cut (Ctrl + X)";
 
             public static LocalizedString darkness = @"Darkness";
 
-            public static LocalizedString droppler = @"Droppler Tool";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString EyeDroppler = @"Eyedropper Tool (I)";
 
             public static LocalizedString edit = @"Edit";
 
             public static LocalizedString editors = @"Game Editors";
 
-            public static LocalizedString erase = @"Erase";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Erase = @"Erase Tool (E)";
 
             public static LocalizedString exit = @"Exit";
 
             public static LocalizedString exportmap = @"Export Map";
 
-            public static LocalizedString externaltools = @"External Tools";
-
             public static LocalizedString file = @"File";
 
-            public static LocalizedString fill = @"Fill";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Fill = @"Fill Layer Tool (F)";
 
             public static LocalizedString fog = @"Fog";
 
@@ -3466,9 +3863,11 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString overlay = @"Overlay";
 
-            public static LocalizedString paste = @"Paste";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Paste = @"Paste (Ctrl + V)";
 
-            public static LocalizedString pen = @"Pen Tool";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Brush = @"Brush Tool (B)";
 
             public static LocalizedString postquestion = @"Post Question";
 
@@ -3476,13 +3875,17 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString questeditor = @"Quest Editor";
 
-            public static LocalizedString rectangle = @"Rectangle Tool";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Rectangle = @"Rectangle Fill Tool (R)";
 
-            public static LocalizedString redo = @"Redo";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Redo = @"Redo (Ctrl + Y)";
 
-            public static LocalizedString fliphorizontal = @"Flip Horizontal";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString FlipHorizontal = @"Horizontal Flip Selection Tool (PageDown)";
 
-            public static LocalizedString flipvertical = @"Flip Vertical";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString FlipVertical = @"Vertical Flip Selection Tool (PageUp)";
 
             public static LocalizedString reportbug = @"Report Bug";
 
@@ -3497,11 +3900,13 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString run = @"Run Client";
 
-            public static LocalizedString savemap = @"Save Map";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString SaveMap = @"Save Map (Ctrl + S)";
 
             public static LocalizedString screenshot = @"Screenshot Map";
 
-            public static LocalizedString selection = @"Selection Tool";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Selection = @"Marquee Selection Tool (M)";
 
             public static LocalizedString selectlayers = @"Select...";
 
@@ -3519,15 +3924,18 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString tools = @"Tools";
 
+            public static LocalizedString MenuToolsPackageUpdate = @"Package Update";
+
             public static LocalizedString toolsdir = @"tools";
 
-            public static LocalizedString undo = @"Undo";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Undo = @"Undo (Ctrl + Z)";
 
             public static LocalizedString view = @"View";
 
         }
 
-        public struct MapCacheProgress
+        public partial struct MapCacheProgress
         {
 
             public static LocalizedString title = @"Saving Map Cache";
@@ -3536,7 +3944,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct MapGrid
+        public partial struct MapGrid
         {
 
             public static LocalizedString clearandfetch =
@@ -3591,7 +3999,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct MapLayers
+        public partial struct MapLayers
         {
 
             public static LocalizedString attributes = @"Attributes";
@@ -3613,7 +4021,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct MapList
+        public partial struct MapList
         {
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -3641,8 +4049,15 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Mapping
+        public partial struct Mapping
         {
+            public static Dictionary<int, LocalizedString> InstanceTypes = new Dictionary<int, LocalizedString>()
+            {
+                {(int)MapInstanceType.Overworld, @"Overworld"},
+                {(int)MapInstanceType.Personal, @"Personal"},
+                {(int)MapInstanceType.Guild, @"Guild"},
+                {(int)MapInstanceType.Shared, @"Shared"},
+            };
 
             public static LocalizedString createmap = @"Create new map.";
 
@@ -3677,10 +4092,10 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct MapProperties
+        public partial struct MapProperties
         {
 
-            public static Dictionary<string, string> categories = new Dictionary<string, string>()
+            public static Dictionary<string, LocalizedString> categories = new Dictionary<string, LocalizedString>()
             {
                 {"general", @"General"},
                 {"lighting", @"Lighting"},
@@ -3688,10 +4103,11 @@ Tick timer saved in server config.json.";
                 {"overlay", @"Overlay"},
                 {"fog", @"Fog"},
                 {"audio", @"Audio"},
-                {"weather", @"Weather"}
+                {"weather", @"Weather"},
+                {"player", @"Player"},
             };
 
-            public static Dictionary<string, string> displaynames = new Dictionary<string, string>()
+            public static Dictionary<string, LocalizedString> displaynames = new Dictionary<string, LocalizedString>()
             {
                 {"ahue", @"AHue"},
                 {"bhue", @"BHue"},
@@ -3717,9 +4133,10 @@ Tick timer saved in server config.json.";
                 {"weatherxspeed", @"Weather X Speed"},
                 {"weatheryspeed", @"Weather Y Speed"},
                 {"weatherintensity", @"Weather Intensity"},
+                {"hideequipment", @"Hide Equipment"},
             };
 
-            public static Dictionary<string, string> descriptions = new Dictionary<string, string>()
+            public static Dictionary<string, LocalizedString> descriptions = new Dictionary<string, LocalizedString>()
             {
                 {
                     "ahuedesc",
@@ -3757,6 +4174,7 @@ Tick timer saved in server config.json.";
                 },
                 {"weatheryspeeddesc", @"How fast vertically weather particles move across the screen. (Range -5 to 5)"},
                 {"weatherintensitydesc", @"How intence the weather is (number of particles). (Range 0 to 100)"},
+                {"hideequipmentdesc", @"Toggling this on will stop rendering of item paperdolls while on this map."},
             };
 
             public static LocalizedString title = @"Map Properties";
@@ -3770,7 +4188,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct NpcEditor
+        public partial struct NpcEditor
         {
 
             public static LocalizedString abilitypower = @"Ability Pwr:";
@@ -3975,9 +4393,28 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString undotitle = @"Undo Changes";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ImmunitiesTitle = @"Immunities";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Tenacity = @"Tenacity (%):";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static Dictionary<StatusTypes, LocalizedString> Immunities = new Dictionary<StatusTypes, LocalizedString>
+            {
+                {StatusTypes.Knockback, @"Knockback"},
+                {StatusTypes.Silence, @"Silence"},
+                {StatusTypes.Stun, @"Stun"},
+                {StatusTypes.Snare, @"Snare"},
+                {StatusTypes.Blind, @"Blind"},
+                {StatusTypes.Transform, @"Transform"},
+                {StatusTypes.Sleep, @"Sleep"},
+                {StatusTypes.Taunt, @"Taunt"},
+            };
+
         }
 
-        public struct NpcSpawns
+        public partial struct NpcSpawns
         {
 
             public static LocalizedString add = @"Add";
@@ -4000,7 +4437,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Options
+        public partial struct Options
         {
 
             public static LocalizedString browsebtn = @"Browse";
@@ -4027,23 +4464,23 @@ Tick timer saved in server config.json.";
             public static LocalizedString PackageOptions = @"Asset Packing Options";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString MusicBatch = @"Music Batch Size";
+            public static LocalizedString MusicPackSize = @"Max Music Pack Size (MB):";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString SoundBatch = @"Sound Batch Size";
+            public static LocalizedString SoundPackSize = @"Max Sound Pack Size (MB):";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString TextureSize = @"Texture Pack Size";
+            public static LocalizedString TextureSize = @"Max Texture Pack Size (Resolution):";
         }
 
-        public struct ProgressForm
+        public partial struct ProgressForm
         {
 
             public static LocalizedString cancel = @"Cancel";
 
         }
 
-        public struct ProjectileEditor
+        public partial struct ProjectileEditor
         {
 
             public static LocalizedString addanimation = @"Add";
@@ -4081,7 +4518,17 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString folderprompt = @"Enter a name for the folder you'd like to add:";
 
-            public static LocalizedString grapple = @"Grapple hook?";
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString GrappleOptionsTitle = @"Grapple Options";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static Dictionary<GrappleOptions, LocalizedString> GrappleOpts = new Dictionary<GrappleOptions, LocalizedString>
+            {
+                {GrappleOptions.MapAttribute, @"On Map Attribute"},
+                {GrappleOptions.Player, @"On Player"},
+                {GrappleOptions.NPC, @"On NPC"},
+                {GrappleOptions.Resource, @"On Resource"},
+            };
 
             public static LocalizedString ignoreactiveresources = @"Active Resources";
 
@@ -4139,7 +4586,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct QuestEditor
+        public partial struct QuestEditor
         {
 
             public static LocalizedString actions = @"Quest Actions:";
@@ -4240,7 +4687,7 @@ Tick timer saved in server config.json.";
             public static LocalizedString order = @"Quest Log Sort Order:";
         }
 
-        public struct ResourceEditor
+        public partial struct ResourceEditor
         {
 
             public static LocalizedString animation = @"Animation:";
@@ -4344,7 +4791,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct ShopEditor
+        public partial struct ShopEditor
         {
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -4470,7 +4917,7 @@ Tick timer saved in server config.json.";
             public static LocalizedString sellsound = @"Sell Sound:";
         }
 
-        public struct SpellEditor
+        public partial struct SpellEditor
         {
 
             public static LocalizedString abilitypower = @"Ability Pwr:";
@@ -4598,6 +5045,9 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString ishotdot = @"HOT/DOT?";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString TickAnimation = @"Tick Animation:";
+
             public static LocalizedString magicresist = @"Magic Resist:";
 
             public static LocalizedString manacost = @"Mana Cost:";
@@ -4675,7 +5125,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct VariableEditor
+        public partial struct VariableEditor
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -4739,9 +5189,15 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString value = @"Value:";
 
+            public static LocalizedString guildvariable = @"Guild Variable";
+
+            public static LocalizedString guildvariables = @"Guild Variables";
+
+            public static LocalizedString textidguildvar = @"Text Id: \guildvar ";
+
         }
 
-        public struct TaskEditor
+        public partial struct TaskEditor
         {
 
             public static LocalizedString cancel = @"Cancel";
@@ -4791,7 +5247,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct AssetPacking
+        public partial struct AssetPacking
         {
 
             public static LocalizedString title = "Packing assets, please wait!";
@@ -4812,7 +5268,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct Tiles
+        public partial struct Tiles
         {
 
             public static LocalizedString animated = @"Animated  [VX Format]";
@@ -4848,7 +5304,7 @@ Tick timer saved in server config.json.";
 
         }
 
-        public struct TimeEditor
+        public partial struct TimeEditor
         {
 
             public static LocalizedString brightness = @"Brightness: {00}%";
@@ -4899,8 +5355,8 @@ Negative values for time to flow backwards.";
             public static LocalizedString to = @"to";
 
         }
-        
-        public struct Update
+
+        public partial struct Update
         {
 
             public static LocalizedString Title = @"Intersect Editor - Updating";
@@ -4923,8 +5379,11 @@ Negative values for time to flow backwards.";
 
         }
 
-        public struct UpdatePacking
+        public partial struct UpdatePacking
         {
+            public static LocalizedString SourceDirectoryPromptDescription = @"Pick the directory from which to generate the update";
+
+            public static LocalizedString TargetDirectoryPromptDescription = @"Pick the directory in which to save the packaged update";
 
             public static LocalizedString Title = @"Packaging Updater Files, Please Wait!";
 
@@ -4946,12 +5405,21 @@ Negative values for time to flow backwards.";
 
         }
 
-        public struct Warping
+        public partial struct Warping
         {
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ChangeInstance = @"Change instance?";
 
             public static LocalizedString direction = @"Dir: {00}";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString InstanceType = @"Instance Type";
+
             public static LocalizedString map = @"Map: {00}";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString MapInstancingGroup = @"Instance Settings";
 
             public static LocalizedString visual = @"Open Visual Interface";
 
@@ -4959,9 +5427,11 @@ Negative values for time to flow backwards.";
 
             public static LocalizedString y = @"Y: {00}";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString WarpSound = @"Sound:";
         }
 
-        public struct WarpSelection
+        public partial struct WarpSelection
         {
 
             public static LocalizedString cancel = @"Cancel";

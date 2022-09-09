@@ -4,7 +4,7 @@ using System;
 namespace Intersect.Network.Packets.Client
 {
     [MessagePackObject]
-    public class PartyInvitePacket : IntersectPacket
+    public partial class PartyInvitePacket : IntersectPacket
     {
         //Parameterless Constructor for MessagePack
         public PartyInvitePacket()
@@ -16,8 +16,16 @@ namespace Intersect.Network.Packets.Client
             TargetId = targetId;
         }
 
+        public PartyInvitePacket(string target)
+        {
+            Target = target;
+        }
+
         [Key(0)]
         public Guid TargetId { get; set; }
+
+        [Key(1)]
+        public string Target { get; set; }
 
     }
 

@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace Intersect.GameObjects.Events
 {
 
-    public class EventPage
+    public partial class EventPage
     {
 
         public EventPage()
@@ -61,6 +61,8 @@ namespace Intersect.GameObjects.Events
         public Guid TriggerVal { get; set; }
 
         public bool WalkingAnimation { get; set; } = true;
+
+        public bool IgnoreNpcAvoids { get; set; }
 
     }
 

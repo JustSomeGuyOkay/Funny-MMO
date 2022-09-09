@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -45,7 +45,8 @@ namespace Intersect.Editor.Forms.DockingElements
         public FrmMapEditor()
         {
             InitializeComponent();
-            this.Icon = Properties.Resources.Icon;
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            picMap.MouseLeave += (_sender, _args) => tooltipMapAttribute?.Hide();
         }
 
         private void InitLocalization()
@@ -231,7 +232,7 @@ namespace Intersect.Editor.Forms.DockingElements
 
                                 Globals.CurSelX = tmpMap.Layers[layer][Globals.CurTileX, Globals.CurTileY].X;
                                 Globals.CurSelY = tmpMap.Layers[layer][Globals.CurTileX, Globals.CurTileY].Y;
-                                Globals.CurrentTool = (int)EditingTool.Pen;
+                                Globals.CurrentTool = (int)EditingTool.Brush;
                                 Globals.MapLayersWindow.SetLayer(layer);
 
                                 break;
@@ -416,7 +417,7 @@ namespace Intersect.Editor.Forms.DockingElements
                     }
                     else if (Globals.CurrentLayer == LayerOptions.Attributes)
                     {
-                        if (Globals.CurrentTool == (int) EditingTool.Pen)
+                        if (Globals.CurrentTool == (int) EditingTool.Brush)
                         {
                             if (Globals.MapLayersWindow.RemoveAttribute(
                                 Globals.CurrentMap, Globals.CurTileX, Globals.CurTileY
@@ -458,7 +459,7 @@ namespace Intersect.Editor.Forms.DockingElements
                     }
                     else
                     {
-                        if (Globals.CurrentTool == (int) EditingTool.Pen)
+                        if (Globals.CurrentTool == (int) EditingTool.Brush)
                         {
                             tmpMap.Layers[Globals.CurrentLayer][Globals.CurTileX, Globals.CurTileY].TilesetId = Guid.Empty;
                             tmpMap.Layers[Globals.CurrentLayer][Globals.CurTileX, Globals.CurTileY].Autotile = 0;
@@ -551,6 +552,7 @@ namespace Intersect.Editor.Forms.DockingElements
                 e.X > Core.Graphics.CurrentView.Left + Options.MapWidth * Options.TileWidth ||
                 e.Y > Core.Graphics.CurrentView.Top + Options.MapHeight * Options.TileHeight)
             {
+                tooltipMapAttribute.Hide();
                 return;
             }
 
@@ -576,6 +578,34 @@ namespace Intersect.Editor.Forms.DockingElements
             if (Globals.CurTileY >= Options.MapHeight)
             {
                 Globals.CurTileY = Options.MapHeight - 1;
+            }
+
+            if (Globals.CurrentLayer == LayerOptions.Attributes)
+            {
+                var hoveredAttribute = Globals.CurrentMap?.Attributes[Globals.CurTileX, Globals.CurTileY];
+                tooltipMapAttribute.MapAttribute = hoveredAttribute;
+
+                if (hoveredAttribute != null)
+                {
+                    tooltipMapAttribute.PerformLayout();
+
+                    var currentView = Core.Graphics.CurrentView;
+                    var left = currentView.Left + Options.TileWidth * (Globals.CurTileX + 1);
+                    var top = currentView.Top + Options.TileHeight * Globals.CurTileY;
+
+                    if (currentView.Width < left + tooltipMapAttribute.Width)
+                    {
+                        left -= tooltipMapAttribute.Width + Options.TileWidth;
+                    }
+
+                    if (currentView.Height < top + tooltipMapAttribute.Height)
+                    {
+                        top -= tooltipMapAttribute.Height - Options.TileHeight;
+                    }
+
+                    tooltipMapAttribute.Location = new System.Drawing.Point(left, top);
+                    tooltipMapAttribute.Show();
+                }
             }
 
             if (e.Button == MouseButtons.Middle)
@@ -721,7 +751,7 @@ namespace Intersect.Editor.Forms.DockingElements
                         Globals.CurMapSelW = Globals.CurTileX - Globals.CurMapSelX;
                         Globals.CurMapSelH = Globals.CurTileY - Globals.CurMapSelY;
                     }
-                    else if (Globals.CurrentTool == (int) EditingTool.Pen)
+                    else if (Globals.CurrentTool == (int) EditingTool.Brush)
                     {
                         if (Globals.CurrentLayer == LayerOptions.Attributes)
                         {
@@ -729,7 +759,7 @@ namespace Intersect.Editor.Forms.DockingElements
                         }
                         else if (Options.Instance.MapOpts.Layers.All.Contains(Globals.CurrentLayer))
                         {
-                            if (Globals.CurrentTool == (int) EditingTool.Pen)
+                            if (Globals.CurrentTool == (int) EditingTool.Brush)
                             {
                                 tmpMap.Layers[Globals.CurrentLayer][Globals.CurTileX, Globals.CurTileY].TilesetId = Guid.Empty;
 
@@ -1046,20 +1076,20 @@ namespace Intersect.Editor.Forms.DockingElements
                                 if (Globals.CurrentMap.Changed() &&
                                     DarkMessageBox.ShowInformation(
                                         Strings.Mapping.savemapdialogue, Strings.Mapping.savemap,
-                                        DarkDialogButton.YesNo, Properties.Resources.Icon
+                                        DarkDialogButton.YesNo, Icon
                                     ) ==
                                     DialogResult.Yes)
                                 {
                                     SaveMap();
                                 }
 
-                                Globals.MainForm.EnterMap(Globals.MapGrid.Grid[x, y].MapId);
+                                Globals.MainForm.EnterMap(Globals.MapGrid.Grid[x, y].MapId, true);
                             }
                             else
                             {
                                 DarkMessageBox.ShowError(
                                     Strings.Mapping.diagonalwarning, Strings.Mapping.createmap, DarkDialogButton.Ok,
-                                    Properties.Resources.Icon
+                                    Icon
                                 );
 
                                 return;
@@ -1069,7 +1099,7 @@ namespace Intersect.Editor.Forms.DockingElements
                         {
                             DarkMessageBox.ShowError(
                                 Strings.Mapping.diagonalwarning, Strings.Mapping.createmap, DarkDialogButton.Ok,
-                                Properties.Resources.Icon
+                                Icon
                             );
 
                             return;
@@ -1083,7 +1113,7 @@ namespace Intersect.Editor.Forms.DockingElements
                     {
                         if (DarkMessageBox.ShowInformation(
                                 Strings.Mapping.createmapdialogue, Strings.Mapping.createmap, DarkDialogButton.YesNo,
-                                Properties.Resources.Icon
+                                Icon
                             ) !=
                             DialogResult.Yes)
                         {
@@ -1093,7 +1123,7 @@ namespace Intersect.Editor.Forms.DockingElements
                         if (Globals.CurrentMap.Changed() &&
                             DarkMessageBox.ShowWarning(
                                 Strings.Mapping.savemapdialogue, Strings.Mapping.savemap, DarkDialogButton.YesNo,
-                                Properties.Resources.Icon
+                                Icon
                             ) ==
                             DialogResult.Yes)
                         {
@@ -1107,14 +1137,14 @@ namespace Intersect.Editor.Forms.DockingElements
                         if (Globals.CurrentMap.Changed() &&
                             DarkMessageBox.ShowWarning(
                                 Strings.Mapping.savemapdialogue, Strings.Mapping.savemap, DarkDialogButton.YesNo,
-                                Properties.Resources.Icon
+                                Icon
                             ) ==
                             DialogResult.Yes)
                         {
                             SaveMap();
                         }
 
-                        Globals.MainForm.EnterMap(newMapId);
+                        Globals.MainForm.EnterMap(newMapId, true);
                     }
 
                     return;
@@ -1255,7 +1285,7 @@ namespace Intersect.Editor.Forms.DockingElements
 
             if (DarkMessageBox.ShowWarning(
                     Strings.Mapping.filllayerdialogue, Strings.Mapping.filllayer, DarkDialogButton.YesNo,
-                    Properties.Resources.Icon
+                    Icon
                 ) ==
                 DialogResult.Yes)
             {
@@ -1344,7 +1374,7 @@ namespace Intersect.Editor.Forms.DockingElements
 
             if (DarkMessageBox.ShowWarning(
                     Strings.Mapping.eraselayerdialogue, Strings.Mapping.eraselayer, DarkDialogButton.YesNo,
-                    Properties.Resources.Icon
+                    Icon
                 ) ==
                 DialogResult.Yes)
             {
@@ -2144,7 +2174,7 @@ namespace Intersect.Editor.Forms.DockingElements
             }
         }
 
-        //Cut Copy Paste Functions
+        // Cut, Copy, Delete and Paste Functions.
         public void Cut()
         {
             Copy();
@@ -2171,6 +2201,20 @@ namespace Intersect.Editor.Forms.DockingElements
                 Globals.CopyMapSelY = Globals.CurMapSelY;
                 Globals.HasCopy = true;
             }
+        }
+        
+        public void Delete()
+        {
+            WipeCurrentSelection(Globals.CurrentMap);
+            Core.Graphics.TilePreviewUpdated = true;
+            if (CurrentMapState != null)
+            {
+                MapUndoStates.Add(CurrentMapState);
+            }
+
+            MapRedoStates.Clear();
+            CurrentMapState = Globals.CurrentMap.SaveInternal();
+            mMapChanged = false;
         }
 
         public void Paste()

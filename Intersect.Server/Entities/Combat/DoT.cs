@@ -5,6 +5,7 @@ using System.Linq;
 using Intersect.Enums;
 using Intersect.GameObjects;
 using Intersect.Server.General;
+using Intersect.Utilities;
 
 namespace Intersect.Server.Entities.Combat
 {
@@ -46,7 +47,7 @@ namespace Intersect.Server.Entities.Combat
             }
             
 
-            mInterval = Globals.Timing.Milliseconds + SpellBase.Combat.HotDotInterval;
+            mInterval = Timing.Global.Milliseconds + SpellBase.Combat.HotDotInterval;
             Count = SpellBase.Combat.Duration / SpellBase.Combat.HotDotInterval - 1;
             target.DoT.TryAdd(Id, this);
             target.CachedDots = target.DoT.Values.ToArray();
@@ -89,18 +90,25 @@ namespace Intersect.Server.Entities.Combat
                 return;
             }
 
-            if (mInterval > Globals.Timing.Milliseconds)
+            if (mInterval > Timing.Global.Milliseconds)
             {
                 return;
             }
 
             var deadAnimations = new List<KeyValuePair<Guid, sbyte>>();
             var aliveAnimations = new List<KeyValuePair<Guid, sbyte>>();
-            if (SpellBase.HitAnimationId != Guid.Empty)
+            if (SpellBase.TickAnimationId != Guid.Empty)
             {
-                deadAnimations.Add(new KeyValuePair<Guid, sbyte>(SpellBase.HitAnimationId, (sbyte) Directions.Up));
-                aliveAnimations.Add(new KeyValuePair<Guid, sbyte>(SpellBase.HitAnimationId, (sbyte) Directions.Up));
+                var animation = new KeyValuePair<Guid, sbyte>(SpellBase.TickAnimationId, (sbyte)Directions.Up);
+                deadAnimations.Add(animation);
+                aliveAnimations.Add(animation);
+            } else if (SpellBase.HitAnimationId != Guid.Empty)
+            {
+                var animation = new KeyValuePair<Guid, sbyte>(SpellBase.HitAnimationId, (sbyte)Directions.Up);
+                deadAnimations.Add(animation);
+                aliveAnimations.Add(animation);
             }
+            
 
             var damageHealth = SpellBase.Combat.VitalDiff[(int)Vitals.Health];
             var damageMana = SpellBase.Combat.VitalDiff[(int)Vitals.Mana];
@@ -112,7 +120,7 @@ namespace Intersect.Server.Entities.Combat
                 aliveAnimations, false
             );
 
-            mInterval = Globals.Timing.Milliseconds + SpellBase.Combat.HotDotInterval;
+            mInterval = Timing.Global.Milliseconds + SpellBase.Combat.HotDotInterval;
             Count--;
         }
 

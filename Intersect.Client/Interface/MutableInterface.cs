@@ -1,4 +1,5 @@
-﻿using Intersect.Client.Framework.Gwen.Control;
+using Intersect.Client.Framework.Gwen.Control;
+using Intersect.Client.Interface.Debugging;
 using Intersect.Reflection;
 
 using System;
@@ -8,12 +9,36 @@ using System.Linq;
 namespace Intersect.Client.Interface
 {
 
-    public abstract class MutableInterface : IMutableInterface
+    public abstract partial class MutableInterface : IMutableInterface
     {
+
+        private static DebugWindow _debugWindow;
+
+        public static void DetachDebugWindow()
+        {
+            if (_debugWindow != null)
+            {
+                _debugWindow.Parent = default;
+            }
+        }
+
+        internal static void DisposeDebugWindow() => _debugWindow?.Dispose();
+
+        private static void EnsureDebugWindowInitialized(Base parent)
+        {
+            if (_debugWindow == default)
+            {
+                _debugWindow = new DebugWindow(parent);
+            }
+
+            _debugWindow.Parent = parent;
+        }
 
         protected internal MutableInterface(Base root)
         {
             Root = root;
+
+            EnsureDebugWindowInitialized(root);
         }
 
         internal Base Root { get; }
@@ -35,9 +60,7 @@ namespace Intersect.Client.Interface
                 return constructor.Invoke(fullParameters) as TElement;
             }
 
-            throw new ArgumentNullException(
-                nameof(constructor), @"Failed to find constructor that matches parameters."
-            );
+            throw new NullReferenceException("Failed to find constructor that matches parameters.");
         }
 
         /// <inheritdoc />
@@ -59,6 +82,10 @@ namespace Intersect.Client.Interface
         public void Remove<TElement>(TElement element, bool dispose = false) where TElement : Base =>
             Root.RemoveChild(element, dispose);
 
+        public static bool ToggleDebug()
+        {
+            _debugWindow.ToggleHidden();
+            return _debugWindow.IsVisible;
+        }
     }
-
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
@@ -34,16 +34,18 @@ namespace Intersect.Editor.Forms.Editors
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             lstGameObjects.LostFocus += itemList_FocusChanged;
             lstGameObjects.GotFocus += itemList_FocusChanged;
             cmbResult.Items.Clear();
-            cmbResult.Items.Add(Strings.General.none);
+            cmbResult.Items.Add(Strings.General.None);
             cmbResult.Items.AddRange(ItemBase.Names);
             cmbIngredient.Items.Clear();
-            cmbIngredient.Items.Add(Strings.General.none);
+            cmbIngredient.Items.Add(Strings.General.None);
             cmbIngredient.Items.AddRange(ItemBase.Names);
             cmbEvent.Items.Clear();
-            cmbEvent.Items.Add(Strings.General.none);
+            cmbEvent.Items.Add(Strings.General.None);
             cmbEvent.Items.AddRange(EventBase.Names);
 
             lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
@@ -79,6 +81,8 @@ namespace Intersect.Editor.Forms.Editors
 
                 //Populate ingredients and such
                 nudSpeed.Value = mEditorItem.Time;
+                nudFailureChance.Value = mEditorItem.FailureChance;
+                nudItemLossChance.Value = mEditorItem.ItemLossChance;
                 cmbResult.SelectedIndex = ItemBase.ListIndex(mEditorItem.ItemId) + 1;
 
                 nudCraftQuantity.Value = mEditorItem.Quantity;
@@ -173,10 +177,20 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem.Time = (int) nudSpeed.Value;
         }
 
+        private void nudFailureChance_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.FailureChance = (int) nudFailureChance.Value;
+        }
+
+        private void nudItemLossChance_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.ItemLossChance = (int) nudItemLossChance.Value;
+        }
+
         private void btnAdd_Click(object sender, EventArgs e)
         {
             mEditorItem.Ingredients.Add(new CraftIngredient(Guid.Empty, 1));
-            lstIngredients.Items.Add(Strings.General.none);
+            lstIngredients.Items.Add(Strings.General.None);
             lstIngredients.SelectedIndex = lstIngredients.Items.Count - 1;
             cmbIngredient_SelectedIndexChanged(null, null);
         }
@@ -228,7 +242,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.CraftsEditor.deleteprompt, Strings.CraftsEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -261,7 +275,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.CraftsEditor.undoprompt, Strings.CraftsEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -429,6 +443,9 @@ namespace Intersect.Editor.Forms.Editors
             lblItem.Text = Strings.CraftsEditor.item;
             lblCraftQuantity.Text = Strings.CraftsEditor.craftquantity;
             lblSpeed.Text = Strings.CraftsEditor.time;
+            lblFailureChance.Text = Strings.CraftsEditor.FailureChance;
+            lblItemLossChance.Text = Strings.CraftsEditor.ItemLossChance;
+            btnCraftRequirements.Text = Strings.CraftsEditor.Requirements;
 
             grpIngredients.Text = Strings.CraftsEditor.ingredients;
             lblIngredient.Text = Strings.CraftsEditor.ingredientitem;
@@ -453,10 +470,16 @@ namespace Intersect.Editor.Forms.Editors
             nudCraftQuantity.Value = Math.Max(1, nudCraftQuantity.Value);
             mEditorItem.Quantity = (int) nudCraftQuantity.Value;
         }
-        
+
         private void cmbEvent_SelectedIndexChanged(object sender, EventArgs e)
         {
             mEditorItem.Event = EventBase.Get(EventBase.IdFromList(cmbEvent.SelectedIndex - 1));
+        }
+
+        private void btnCraftRequirements_Click(object sender, EventArgs e)
+        {
+            var frm = new FrmDynamicRequirements(mEditorItem.CraftingRequirements, RequirementType.Craft);
+            frm.ShowDialog();
         }
 
         #region "Item List - Folders, Searching, Sorting, Etc"

@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 
 using Intersect.Client.Core;
 using Intersect.Client.Framework.File_Management;
+using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Gwen;
 using Intersect.Client.Framework.Gwen.Control;
 using Intersect.Client.Framework.Gwen.Control.EventArguments;
@@ -10,8 +11,33 @@ using Intersect.Client.Localization;
 namespace Intersect.Client.Interface.Game
 {
 
-    public class InputBox : Base
+    public partial class InputBox : Base
     {
+        public static void Open(
+            string title,
+            string prompt,
+            bool modal,
+            InputType inputType,
+            EventHandler onSuccess,
+            EventHandler onCancel,
+            object userData,
+            int quantity = 0,
+            int maxQuantity = int.MaxValue,
+            Base parent = null,
+            GameContentManager.UI stage = GameContentManager.UI.InGame
+        ) => new InputBox(
+            title: title,
+            prompt: prompt,
+            modal: modal,
+            inputType: inputType,
+            onSuccess: onSuccess,
+            onCancel: onCancel,
+            userData: userData,
+            quantity: quantity,
+            maxQuantity: maxQuantity,
+            parent: parent,
+            stage: stage
+        );
 
         public enum InputType
         {
@@ -23,6 +49,8 @@ namespace Intersect.Client.Interface.Game
             NumericInput,
 
             TextInput,
+
+            NumericSliderInput,
 
         }
 
@@ -40,6 +68,12 @@ namespace Intersect.Client.Interface.Game
 
         private ImagePanel mNumericTextboxBg;
 
+        private ImagePanel mNumericSliderboxBg;
+
+        private HorizontalSlider mNumericSlider;
+
+        private TextBoxNumeric mNumericSliderTextbox;
+
         private Button mOkayButton;
 
         private string mPrompt = "";
@@ -52,23 +86,24 @@ namespace Intersect.Client.Interface.Game
 
         private Button mYesButton;
 
-        public string TextValue;
+        public string TextValue { get; set; }
 
-        public object UserData;
+        public object UserData { get; set; }
 
-        public float Value;
+        public double Value { get; set; }
 
-        public new string Name = "InputBox";
+        public new string Name { get; set; } = "InputBox";
 
         public InputBox(
             string title,
             string prompt,
             bool modal,
-            InputType inputtype,
-            EventHandler okayYesSubmitClicked,
-            EventHandler cancelClicked,
+            InputType inputType,
+            EventHandler onSuccess,
+            EventHandler onCancel,
             object userData,
             int quantity = 0,
+            int maxQuantity = Int32.MaxValue,
             Base parent = null,
             GameContentManager.UI stage = GameContentManager.UI.InGame
         ) : base(parent)
@@ -78,10 +113,10 @@ namespace Intersect.Client.Interface.Game
                 parent = Interface.GameUi.GameCanvas;
             }
 
-            OkayEventHandler = okayYesSubmitClicked;
-            CancelEventHandler = cancelClicked;
-            this.UserData = userData;
-            mInputType = inputtype;
+            OkayEventHandler = onSuccess;
+            CancelEventHandler = onCancel;
+            UserData = userData;
+            mInputType = inputType;
             _uiStage = stage;
             mPrompt = prompt;
 
@@ -92,26 +127,51 @@ namespace Intersect.Client.Interface.Game
             mNumericTextboxBg = new ImagePanel(mMyWindow, "Textbox");
             mNumericTextbox = new TextBoxNumeric(mNumericTextboxBg, "TextboxText");
             mNumericTextbox.SubmitPressed += TextBox_SubmitPressed;
-            mNumericTextbox.Text = quantity.ToString();
-            if (inputtype == InputType.NumericInput)
-            {
-                mNumericTextbox.Focus();
-            }
+            mNumericTextbox.Value = quantity;
 
             mTextboxBg = new ImagePanel(mMyWindow, "Textbox");
             mTextbox = new TextBox(mTextboxBg, "TextboxText");
             mTextbox.SubmitPressed += TextBox_SubmitPressed;
-            if (inputtype == InputType.TextInput)
+
+            mNumericSliderboxBg = new ImagePanel(mMyWindow, "Sliderbox");
+            mNumericSlider = new HorizontalSlider(mNumericSliderboxBg, "Slider");
+            mNumericSlider.SetRange(1, maxQuantity);
+            mNumericSlider.NotchCount = maxQuantity;
+            mNumericSlider.SnapToNotches = true;
+            mNumericSlider.Value = quantity;
+            mNumericSlider.ValueChanged += MNumericSlider_ValueChanged;
+            mNumericSliderTextbox = new TextBoxNumeric(mNumericSliderboxBg, "SliderboxText");
+            mNumericSliderTextbox.Value = quantity;
+            mNumericSliderTextbox.TextChanged += MNumericSliderTextbox_TextChanged;
+            mNumericSliderTextbox.SubmitPressed += MNumericSliderTextbox_SubmitPressed;
+
+            if (inputType == InputType.NumericInput)
+            {
+                mNumericTextbox.Focus();
+            }
+
+            if (inputType == InputType.TextInput)
             {
                 mTextbox.Focus();
             }
 
-            if (inputtype != InputType.NumericInput)
+            if (inputType != InputType.NumericInput)
             {
                 mNumericTextboxBg.IsHidden = true;
             }
 
-            if (inputtype != InputType.TextInput)
+            if (inputType == InputType.NumericSliderInput)
+            {
+                mNumericSliderTextbox.Focus();
+            }
+
+            if (inputType != InputType.NumericSliderInput)
+            {
+                mNumericSliderboxBg.Hide();
+            }
+
+
+            if (inputType != InputType.TextInput)
             {
                 mTextboxBg.IsHidden = true;
             }
@@ -130,6 +190,33 @@ namespace Intersect.Client.Interface.Game
 
             mPromptLabel = new Label(mMyWindow, "PromptLabel");
             Interface.InputBlockingElements.Add(this);
+
+            Value = quantity;
+        }
+
+        private void MNumericSliderTextbox_TextChanged(Base sender, EventArgs arguments)
+        {
+            if (sender is HorizontalSlider box && box == mNumericSlider)
+            {
+                return;
+            }
+
+            mNumericSlider.Value = mNumericSliderTextbox.Value;
+        }
+
+        private void MNumericSliderTextbox_SubmitPressed(Base sender, EventArgs arguments)
+        {
+            SubmitInput();
+        }
+
+        private void MNumericSlider_ValueChanged(Base sender, EventArgs arguments)
+        {
+            if (sender is TextBoxNumeric box && box == mNumericSliderTextbox)
+            {
+                return;
+            }
+
+            mNumericSliderTextbox.Value = (int) mNumericSlider.Value;
         }
 
         private void TextBox_SubmitPressed(Base sender, EventArgs arguments)
@@ -167,6 +254,7 @@ namespace Intersect.Client.Interface.Game
                         mYesButton.Show();
                         mNoButton.Show();
                         mNumericTextboxBg.Hide();
+                        mNumericSliderboxBg.Hide();
                         mTextboxBg.Hide();
 
                         break;
@@ -175,6 +263,7 @@ namespace Intersect.Client.Interface.Game
                         mYesButton.Hide();
                         mNoButton.Hide();
                         mNumericTextboxBg.Hide();
+                        mNumericSliderboxBg.Hide();
                         mTextboxBg.Hide();
 
                         break;
@@ -183,6 +272,16 @@ namespace Intersect.Client.Interface.Game
                         mYesButton.Show();
                         mNoButton.Show();
                         mNumericTextboxBg.Show();
+                        mNumericSliderboxBg.Hide();
+                        mTextboxBg.Hide();
+
+                        break;
+                    case InputType.NumericSliderInput:
+                        mOkayButton.Hide();
+                        mYesButton.Show();
+                        mNoButton.Show();
+                        mNumericTextboxBg.Hide();
+                        mNumericSliderboxBg.Show();
                         mTextboxBg.Hide();
 
                         break;
@@ -191,6 +290,7 @@ namespace Intersect.Client.Interface.Game
                         mYesButton.Show();
                         mNoButton.Show();
                         mNumericTextboxBg.Hide();
+                        mNumericSliderboxBg.Hide();
                         mTextboxBg.Show();
 
                         break;
@@ -208,14 +308,19 @@ namespace Intersect.Client.Interface.Game
 
         void cancelBtn_Clicked(Base sender, ClickedEventArgs arguments)
         {
-            if (mNumericTextbox != null)
+            if (mInputType == InputType.NumericInput)
             {
                 Value = mNumericTextbox.Value;
             }
 
-            if (mTextbox != null)
+            if (mInputType == InputType.TextInput)
             {
                 TextValue = mTextbox.Text;
+            }
+
+            if (mInputType == InputType.NumericSliderInput)
+            {
+                Value = mNumericSlider.Value;
             }
 
             if (CancelEventHandler != null)
@@ -233,14 +338,19 @@ namespace Intersect.Client.Interface.Game
 
         private void SubmitInput()
         {
-            if (mNumericTextbox != null)
+            if (mInputType == InputType.NumericInput)
             {
                 Value = mNumericTextbox.Value;
             }
 
-            if (mTextbox != null)
+            if (mInputType == InputType.TextInput)
             {
                 TextValue = mTextbox.Text;
+            }
+
+            if (mInputType == InputType.NumericSliderInput)
+            {
+                Value = mNumericSlider.Value;
             }
 
             OkayEventHandler?.Invoke(this, EventArgs.Empty);

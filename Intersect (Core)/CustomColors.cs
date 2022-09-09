@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 namespace Intersect
 {
 
-    public class ColorConverter : JsonConverter<Color>
+    public partial class ColorConverter : JsonConverter<Color>
     {
 
         public override void WriteJson(JsonWriter writer, Color value, JsonSerializer serializer)
@@ -31,7 +31,7 @@ namespace Intersect
 
     }
 
-    public struct LabelColor
+    public partial struct LabelColor
     {
 
         public Color Name;
@@ -62,7 +62,7 @@ namespace Intersect
             Root = JsonConvert.DeserializeObject<RootNamespace>(json, new ColorConverter()) ?? Root;
         }
 
-        public sealed class NamesNamespace
+        public sealed partial class NamesNamespace
         {
 
             public LabelColor Events = new LabelColor(Color.White, Color.Black, new Color(180, 0, 0, 0));
@@ -88,7 +88,7 @@ namespace Intersect
 
         }
 
-        public sealed class ChatNamespace
+        public sealed partial class ChatNamespace
         {
 
             public Color AdminChat = Color.Cyan;
@@ -100,6 +100,8 @@ namespace Intersect
             public Color AnnouncementChat = Color.Yellow;
 
             public Color ChatBubbleText = Color.Black;
+
+            public Color ChatBubbleTextOutline = Color.Transparent;
 
             public Color GlobalChat = new Color(255, 220, 220, 220);
 
@@ -115,7 +117,9 @@ namespace Intersect
 
             public Color PlayerMsg = new Color(255, 220, 220, 220);
 
-            public Color PrivateChat = Color.Magenta;
+            public Color PrivateChatFrom = Color.Magenta;
+
+            public Color PrivateChatTo = new Color(190, 0, 190);
 
             public Color ProximityMsg = new Color(255, 220, 220, 220);
 
@@ -123,7 +127,7 @@ namespace Intersect
 
         }
 
-        public sealed class QuestsNamespace
+        public sealed partial class QuestAlertNamespace
         {
 
             public Color Abandoned = Color.Red;
@@ -138,7 +142,20 @@ namespace Intersect
 
         }
 
-        public sealed class AlertsNamespace
+        public sealed partial class QuestWindowNamespace
+        {
+
+            public Color Completed = Color.Green;
+
+            public Color InProgress = Color.Yellow;
+
+            public Color NotStarted = Color.Red;
+
+            public Color QuestDesc = Color.White;
+
+        }
+
+        public sealed partial class AlertsNamespace
         {
 
             public Color Accepted = Color.Green;
@@ -159,7 +176,7 @@ namespace Intersect
 
         }
 
-        public sealed class CombatNamespace
+        public sealed partial class CombatNamespace
         {
 
             public Color AddMana = new Color(255, 0, 0, 255);
@@ -198,7 +215,7 @@ namespace Intersect
 
         }
 
-        public sealed class ItemsNamespace
+        public sealed partial class ItemsNamespace
         {
 
             public Color Bound = Color.Red;
@@ -290,7 +307,7 @@ namespace Intersect
         private static RootNamespace Root { get; set; }
 
         // ReSharper disable MemberHidesStaticFromOuterClass
-        private sealed class RootNamespace
+        private sealed partial class RootNamespace
         {
 
             public readonly AlertsNamespace Alerts = new AlertsNamespace();
@@ -303,7 +320,9 @@ namespace Intersect
 
             public readonly NamesNamespace Names = new NamesNamespace();
 
-            public readonly QuestsNamespace Quests = new QuestsNamespace();
+            public readonly QuestAlertNamespace QuestAlert = new QuestAlertNamespace();
+
+            public readonly QuestWindowNamespace QuestWindow = new QuestWindowNamespace();
 
         }
 
@@ -317,7 +336,9 @@ namespace Intersect
 
         public static ChatNamespace Chat => Root.Chat;
 
-        public static QuestsNamespace Quests => Root.Quests;
+        public static QuestAlertNamespace QuestAlert => Root.QuestAlert;
+
+        public static QuestWindowNamespace QuestWindow => Root.QuestWindow;
 
         public static AlertsNamespace Alerts => Root.Alerts;
 

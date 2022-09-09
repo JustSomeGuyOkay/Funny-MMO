@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using Intersect.Client.Core;
@@ -11,17 +11,13 @@ using Intersect.Client.Localization;
 using Intersect.Client.Networking;
 using Intersect.GameObjects;
 using Intersect.GameObjects.Crafting;
+using Intersect.Utilities;
 
 namespace Intersect.Client.Interface.Game.Crafting
 {
 
-    public class CraftingWindow
+    public partial class CraftingWindow
     {
-
-        private static int sItemXPadding = 4;
-
-        private static int sItemYPadding = 4;
-
         public bool Crafting;
 
         private ImagePanel mBar;
@@ -42,8 +38,6 @@ namespace Intersect.Client.Interface.Game.Crafting
 
         private int mAutoCraftAmount = 0;
 
-        private ImagePanel mCraftedItemTemplate;
-
         private Guid mCraftId;
 
         //Controls
@@ -55,18 +49,27 @@ namespace Intersect.Client.Interface.Game.Crafting
 
         private List<RecipeItem> mItems = new List<RecipeItem>();
 
-        private ImagePanel mItemTemplate;
-
         private Label mLblIngredients;
 
         private Label mLblProduct;
 
         private Label mLblRecipes;
 
+        private Label mLblCraftingChance;
+
+        private Label mLblDestroyMaterialsChance;
+
+        private Label mLblCraftingTime;
+
         //Objects
         private ListBox mRecipes;
 
         private List<Label> mValues = new List<Label>();
+
+        //Location
+        public int X => mCraftWindow.X;
+
+        public int Y => mCraftWindow.Y;
 
         public CraftingWindow(Canvas gameCanvas)
         {
@@ -84,6 +87,15 @@ namespace Intersect.Client.Interface.Game.Crafting
 
             mLblProduct = new Label(mCraftWindow, "ProductLabel");
             mLblProduct.Text = Strings.Crafting.product;
+
+            mLblCraftingChance = new Label(mCraftWindow, "ProductChanceLabel");
+            mLblCraftingChance.Text = Strings.Crafting.CraftChance.ToString(0);
+
+            mLblDestroyMaterialsChance = new Label(mCraftWindow, "DestroyMaterialsChanceLabel");
+            mLblDestroyMaterialsChance.Text = Strings.Crafting.DestroyMaterialsChance.ToString(0);
+
+            mLblCraftingTime = new Label(mCraftWindow, "CraftingTimeLabel");
+            mLblCraftingTime.Text = Strings.Crafting.CraftingTime.ToString(0);
 
             //Recepie list
             mRecipes = new ListBox(mCraftWindow, "RecipesList");
@@ -112,11 +124,6 @@ namespace Intersect.Client.Interface.Game.Crafting
                 LoadCraftItems(mCraftId);
             };
         }
-
-        //Location
-        public int X => mCraftWindow.X;
-
-        public int Y => mCraftWindow.Y;
 
         private void LoadCraftItems(Guid id)
         {
@@ -245,6 +252,11 @@ namespace Intersect.Client.Interface.Game.Crafting
                     );
             }
 
+            //Show crafting time and chances
+            mLblCraftingTime.Text = Strings.Crafting.CraftingTime.ToString(craft.Time / 1000.0);
+            mLblCraftingChance.Text = Strings.Crafting.CraftChance.ToString(craft.FailureChance);
+            mLblDestroyMaterialsChance.Text = Strings.Crafting.DestroyMaterialsChance.ToString(craft.ItemLossChance);
+
             //If crafting & we no longer have the items for the craft then stop!
             if (Crafting)
             {
@@ -277,7 +289,7 @@ namespace Intersect.Client.Interface.Game.Crafting
                     Crafting = false;
                     mCraftWindow.IsClosable = true;
                     mBar.Width = 0;
-                    ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, Color.Red, Enums.ChatMessageType.Crafting));
+                    ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, CustomColors.Alerts.Error, Enums.ChatMessageType.Crafting));
 
                     return;
                 }
@@ -416,7 +428,7 @@ namespace Intersect.Client.Interface.Game.Crafting
             if (CanCraft())
             {
                 Crafting = true;
-                mBarTimer = Globals.System.GetTimeMs();
+                mBarTimer = Timing.Global.Milliseconds;
                 PacketSender.SendCraftItem(mCraftId);
                 mCraftWindow.IsClosable = false;
                 mCraftAll.Hide();
@@ -424,7 +436,7 @@ namespace Intersect.Client.Interface.Game.Crafting
                 return;
             }
 
-            ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, Color.Red, Enums.ChatMessageType.Crafting));
+            ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, CustomColors.Alerts.Error, Enums.ChatMessageType.Crafting));
         }
 
         //Craft all the items
@@ -439,7 +451,7 @@ namespace Intersect.Client.Interface.Game.Crafting
             }
             else
             {
-                ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, Color.Red, Enums.ChatMessageType.Crafting));
+                ChatboxMsg.AddMessage(new ChatboxMsg(Strings.Crafting.incorrectresources, CustomColors.Alerts.Error, Enums.ChatMessageType.Crafting));
             }
         }
 
@@ -465,8 +477,6 @@ namespace Intersect.Client.Interface.Game.Crafting
                     tmpRow.UserData = Globals.ActiveCraftingTable.Crafts[i];
                     tmpRow.DoubleClicked += tmpNode_DoubleClicked;
                     tmpRow.Clicked += tmpNode_DoubleClicked;
-                    tmpRow.SetTextColor(Color.White);
-                    tmpRow.RenderColor = new Color(50, 255, 255, 255);
                 }
 
                 //Load the craft data
@@ -496,7 +506,7 @@ namespace Intersect.Client.Interface.Game.Crafting
                 return;
             }
 
-            var delta = Globals.System.GetTimeMs() - mBarTimer;
+            var delta = Timing.Global.Milliseconds - mBarTimer;
             if (delta > craft.Time)
             {
                 delta = craft.Time;

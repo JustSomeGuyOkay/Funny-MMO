@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -509,7 +509,7 @@ namespace Intersect.Editor.Forms.Editors.Events
             {
                 DarkMessageBox.ShowWarning(
                     Strings.EventCommandList.notcommon, Strings.EventCommandList.notcommoncaption, DarkDialogButton.Ok,
-                    Properties.Resources.Icon
+                    Icon
                 );
 
                 EnableButtons();
@@ -793,9 +793,9 @@ namespace Intersect.Editor.Forms.Editors.Events
         public FrmEvent(MapBase currentMap)
         {
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             mCurrentMap = currentMap;
-			
-			this.Icon = Properties.Resources.Icon;
         }
 
         private void frmEvent_Load(object sender, EventArgs e)
@@ -825,7 +825,7 @@ namespace Intersect.Editor.Forms.Editors.Events
 
             if (DarkMessageBox.ShowWarning(
                     Strings.EventEditor.savedialogue, Strings.EventEditor.savecaption, DarkDialogButton.YesNo,
-                    Properties.Resources.Icon
+                    Icon
                 ) ==
                 DialogResult.Yes)
             {
@@ -906,6 +906,7 @@ namespace Intersect.Editor.Forms.Editors.Events
             chkDirectionFix.Text = Strings.EventEditor.directionfix;
             chkWalkingAnimation.Text = Strings.EventEditor.walkinganim;
             chkInteractionFreeze.Text = Strings.EventEditor.interactionfreeze;
+            chkIgnoreNpcAvoids.Text = Strings.EventEditor.ignorenpcavoids;
             grpTriggers.Text = Strings.EventEditor.trigger;
             grpNewCommands.Text = Strings.EventEditor.addcommand;
             grpEventCommands.Text = Strings.EventEditor.commandlist;
@@ -953,13 +954,13 @@ namespace Intersect.Editor.Forms.Editors.Events
             }
 
             cmbPreviewFace.Items.Clear();
-            cmbPreviewFace.Items.Add(Strings.General.none);
+            cmbPreviewFace.Items.Add(Strings.General.None);
             cmbPreviewFace.Items.AddRange(
                 GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Face)
             );
 
             cmbAnimation.Items.Clear();
-            cmbAnimation.Items.Add(Strings.General.none);
+            cmbAnimation.Items.Add(Strings.General.None);
             cmbAnimation.Items.AddRange(AnimationBase.Names);
             if (MyEvent.CommonEvent || questEvent)
             {
@@ -979,7 +980,7 @@ namespace Intersect.Editor.Forms.Editors.Events
                 }
 
                 cmbTriggerVal.Items.Clear();
-                cmbTriggerVal.Items.Add(Strings.General.none);
+                cmbTriggerVal.Items.Add(Strings.General.None);
                 cmbTriggerVal.Items.AddRange(ProjectileBase.Names);
             }
 
@@ -1057,6 +1058,7 @@ namespace Intersect.Editor.Forms.Editors.Events
             chkDirectionFix.Checked = Convert.ToBoolean(CurrentPage.DirectionFix);
             chkWalkingAnimation.Checked = Convert.ToBoolean(CurrentPage.WalkingAnimation);
             chkInteractionFreeze.Checked = Convert.ToBoolean(CurrentPage.InteractionFreeze);
+            chkIgnoreNpcAvoids.Checked = Convert.ToBoolean(CurrentPage.IgnoreNpcAvoids);
             txtDesc.Text = CurrentPage.Description;
             ListPageCommands();
             UpdateEventPreview();
@@ -1362,7 +1364,7 @@ namespace Intersect.Editor.Forms.Editors.Events
 
             if (cmdWindow != null)
             {
-                if (cmdWindow.GetType() == typeof(EventMoveRouteDesigner))
+                if (cmdWindow is EventMoveRouteDesigner)
                 {
                     Controls.Add(cmdWindow);
                     cmdWindow.Width = ClientSize.Width;
@@ -1696,6 +1698,30 @@ namespace Intersect.Editor.Forms.Editors.Events
             }
         }
 
+        /// <summary>
+        /// Custom renderer for event commands to draw labels in green for easier visibility.
+        /// </summary>
+        private void lstEventCommands_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            e.DrawBackground();
+            Graphics g = e.Graphics;
+
+            if (e.Index > -1 && e.Index < lstEventCommands.Items.Count && e.Index < mCommandProperties.Count)
+            {
+                if (mCommandProperties[e.Index].Type == EventCommandType.Label)
+                {
+                    g.DrawString(lstEventCommands.Items[e.Index].ToString(), e.Font, Brushes.SpringGreen, new PointF(e.Bounds.X, e.Bounds.Y));
+                }
+                else
+                {
+                    g.DrawString(lstEventCommands.Items[e.Index].ToString(), e.Font, new SolidBrush(e.ForeColor), new PointF(e.Bounds.X, e.Bounds.Y));
+                }
+            }
+
+
+            e.DrawFocusRectangle();
+        }
+
         #endregion
 
         #region "Movement Options"
@@ -1725,7 +1751,7 @@ namespace Intersect.Editor.Forms.Editors.Events
 
         private void btnSetRoute_Click(object sender, EventArgs e)
         {
-            var moveRouteDesigner = new EventMoveRouteDesigner(this, mCurrentMap, MyEvent, CurrentPage.Movement.Route);
+            var moveRouteDesigner = new EventMoveRouteDesigner(this, mCurrentMap, MyEvent, CurrentPage.Movement.Route, null, true);
             Controls.Add(moveRouteDesigner);
             moveRouteDesigner.BringToFront();
             moveRouteDesigner.Size = ClientSize;
@@ -1783,16 +1809,23 @@ namespace Intersect.Editor.Forms.Editors.Events
                 else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.PlayerVariableChange)
                 {
                     cmbVariable.Show();
-                    cmbVariable.Items.Add(Strings.General.none);
+                    cmbVariable.Items.Add(Strings.General.None);
                     cmbVariable.Items.AddRange(PlayerVariableBase.Names);
                     cmbVariable.SelectedIndex = PlayerVariableBase.ListIndex(CurrentPage.TriggerId) + 1;
                 }
                 else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.ServerVariableChange)
                 {
                     cmbVariable.Show();
-                    cmbVariable.Items.Add(Strings.General.none);
+                    cmbVariable.Items.Add(Strings.General.None);
                     cmbVariable.Items.AddRange(ServerVariableBase.Names);
                     cmbVariable.SelectedIndex = ServerVariableBase.ListIndex(CurrentPage.TriggerId) + 1;
+                }
+                else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.GuildVariableChange)
+                {
+                    cmbVariable.Show();
+                    cmbVariable.Items.Add(Strings.General.None);
+                    cmbVariable.Items.AddRange(GuildVariableBase.Names);
+                    cmbVariable.SelectedIndex = GuildVariableBase.ListIndex(CurrentPage.TriggerId) + 1;
                 }
             }
         }
@@ -1808,6 +1841,10 @@ namespace Intersect.Editor.Forms.Editors.Events
                 else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.ServerVariableChange)
                 {
                     CurrentPage.TriggerId = ServerVariableBase.IdFromList(cmbVariable.SelectedIndex - 1);
+                }
+                else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.GuildVariableChange)
+                {
+                    CurrentPage.TriggerId = GuildVariableBase.IdFromList(cmbVariable.SelectedIndex - 1);
                 }
             }
         }
@@ -1830,6 +1867,11 @@ namespace Intersect.Editor.Forms.Editors.Events
         private void chkInteractionFreeze_CheckedChanged(object sender, EventArgs e)
         {
             CurrentPage.InteractionFreeze = chkInteractionFreeze.Checked;
+        }
+
+        private void chkIgnoreNpcAvoids_CheckedChanged(object sender, EventArgs e)
+        {
+            CurrentPage.IgnoreNpcAvoids = chkIgnoreNpcAvoids.Checked;
         }
 
         #endregion
@@ -1882,7 +1924,7 @@ namespace Intersect.Editor.Forms.Editors.Events
         #endregion
     }
 
-    public class CommandListProperties
+    public partial class CommandListProperties
     {
 
         public EventCommand Cmd;

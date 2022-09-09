@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -34,6 +34,7 @@ namespace Intersect.Editor.Forms.Editors
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
         }
@@ -74,6 +75,9 @@ namespace Intersect.Editor.Forms.Editors
             //Send Changed items
             foreach (var item in mChanged)
             {
+                // Sort immunities to keep change checker consistent
+                item.Immunities.Sort();
+
                 PacketSender.SendSaveObject(item);
                 item.DeleteBackup();
             }
@@ -86,7 +90,7 @@ namespace Intersect.Editor.Forms.Editors
         private void frmNpc_Load(object sender, EventArgs e)
         {
             cmbSprite.Items.Clear();
-            cmbSprite.Items.Add(Strings.General.none);
+            cmbSprite.Items.Add(Strings.General.None);
             cmbSprite.Items.AddRange(
                 GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Entity)
             );
@@ -96,16 +100,16 @@ namespace Intersect.Editor.Forms.Editors
             cmbHostileNPC.Items.Clear();
             cmbHostileNPC.Items.AddRange(NpcBase.Names);
             cmbDropItem.Items.Clear();
-            cmbDropItem.Items.Add(Strings.General.none);
+            cmbDropItem.Items.Add(Strings.General.None);
             cmbDropItem.Items.AddRange(ItemBase.Names);
             cmbAttackAnimation.Items.Clear();
-            cmbAttackAnimation.Items.Add(Strings.General.none);
+            cmbAttackAnimation.Items.Add(Strings.General.None);
             cmbAttackAnimation.Items.AddRange(AnimationBase.Names);
             cmbOnDeathEventKiller.Items.Clear();
-            cmbOnDeathEventKiller.Items.Add(Strings.General.none);
+            cmbOnDeathEventKiller.Items.Add(Strings.General.None);
             cmbOnDeathEventKiller.Items.AddRange(EventBase.Names);
             cmbOnDeathEventParty.Items.Clear();
-            cmbOnDeathEventParty.Items.Add(Strings.General.none);
+            cmbOnDeathEventParty.Items.Add(Strings.General.None);
             cmbOnDeathEventParty.Items.AddRange(EventBase.Names);
             cmbScalingStat.Items.Clear();
             for (var x = 0; x < (int)Stats.StatCount; x++)
@@ -238,6 +242,17 @@ namespace Intersect.Editor.Forms.Editors
             txtSearch.Text = Strings.NpcEditor.searchplaceholder;
             lblFolder.Text = Strings.NpcEditor.folderlabel;
 
+            grpImmunities.Text = Strings.NpcEditor.ImmunitiesTitle;
+            chkKnockback.Text = Strings.NpcEditor.Immunities[StatusTypes.Knockback];
+            chkSilence.Text = Strings.NpcEditor.Immunities[StatusTypes.Silence];
+            chkStun.Text = Strings.NpcEditor.Immunities[StatusTypes.Stun];
+            chkSnare.Text = Strings.NpcEditor.Immunities[StatusTypes.Snare];
+            chkBlind.Text = Strings.NpcEditor.Immunities[StatusTypes.Blind];
+            chkTransform.Text = Strings.NpcEditor.Immunities[StatusTypes.Transform];
+            chkTaunt.Text = Strings.NpcEditor.Immunities[StatusTypes.Taunt];
+            chkSleep.Text = Strings.NpcEditor.Immunities[StatusTypes.Sleep];
+            lblTenacity.Text = Strings.NpcEditor.Tenacity;
+
             btnSave.Text = Strings.NpcEditor.save;
             btnCancel.Text = Strings.NpcEditor.cancel;
         }
@@ -317,7 +332,7 @@ namespace Intersect.Editor.Forms.Editors
                     }
                     else
                     {
-                        lstSpells.Items.Add(Strings.General.none);
+                        lstSpells.Items.Add(Strings.General.None);
                     }
                 }
 
@@ -339,7 +354,7 @@ namespace Intersect.Editor.Forms.Editors
                     }
                     else
                     {
-                        lstAggro.Items.Add(Strings.General.none);
+                        lstAggro.Items.Add(Strings.General.None);
                     }
                 }
 
@@ -352,6 +367,11 @@ namespace Intersect.Editor.Forms.Editors
                     mChanged.Add(mEditorItem);
                     mEditorItem.MakeBackup();
                 }
+
+                // Tenacity and immunities
+                nudTenacity.Value = (decimal) mEditorItem.Tenacity;
+
+                UpdateImmunities();
             }
             else
             {
@@ -401,7 +421,7 @@ namespace Intersect.Editor.Forms.Editors
                     img, new Rectangle(0, 0, img.Width / Options.Instance.Sprites.NormalFrames, img.Height / Options.Instance.Sprites.Directions),
                     0, 0, img.Width / Options.Instance.Sprites.NormalFrames, img.Height / Options.Instance.Sprites.Directions, GraphicsUnit.Pixel, imgAttributes
                 );
-                
+
                 img.Dispose();
                 imgAttributes.Dispose();
             }
@@ -503,7 +523,7 @@ namespace Intersect.Editor.Forms.Editors
                 }
                 else
                 {
-                    lstAggro.Items.Add(Strings.General.none);
+                    lstAggro.Items.Add(Strings.General.None);
                 }
             }
         }
@@ -529,7 +549,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.NpcEditor.deleteprompt, Strings.NpcEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -562,7 +582,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.NpcEditor.undoprompt, Strings.NpcEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -578,6 +598,18 @@ namespace Intersect.Editor.Forms.Editors
             toolStripItemPaste.Enabled = mEditorItem != null && mCopiedItem != null && lstGameObjects.Focused;
             toolStripItemDelete.Enabled = mEditorItem != null && lstGameObjects.Focused;
             toolStripItemUndo.Enabled = mEditorItem != null && lstGameObjects.Focused;
+        }
+
+        private void UpdateImmunities()
+        {
+            chkKnockback.Checked = mEditorItem.Immunities.Contains(StatusTypes.Knockback);
+            chkSilence.Checked = mEditorItem.Immunities.Contains(StatusTypes.Silence);
+            chkSnare.Checked = mEditorItem.Immunities.Contains(StatusTypes.Snare);
+            chkStun.Checked = mEditorItem.Immunities.Contains(StatusTypes.Stun);
+            chkSleep.Checked = mEditorItem.Immunities.Contains(StatusTypes.Sleep);
+            chkTransform.Checked = mEditorItem.Immunities.Contains(StatusTypes.Transform);
+            chkTaunt.Checked = mEditorItem.Immunities.Contains(StatusTypes.Taunt);
+            chkBlind.Checked = mEditorItem.Immunities.Contains(StatusTypes.Blind);
         }
 
         private void form_KeyDown(object sender, KeyEventArgs e)
@@ -908,8 +940,12 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudResetRadius_ValueChanged(object sender, EventArgs e)
         {
-            // Set to either default or higher.
-            nudResetRadius.Value = Math.Max(Options.Npc.ResetRadius, nudResetRadius.Value);
+            // So, the pathfinder on the server maintains a set max distance of whichever the largest value is, map height or width. Limit ourselves to this!
+            var maxPathFindingDistance = Math.Max(Options.MapWidth, Options.MapHeight);
+            var maxUserEnteredValue = Math.Max(Options.Npc.ResetRadius, nudResetRadius.Value);
+
+            // Use whatever is the lowest, either the maximum path find distance or the user entered value.
+            nudResetRadius.Value = Math.Min(maxPathFindingDistance, maxUserEnteredValue);
             mEditorItem.ResetRadius = (int)nudResetRadius.Value;
         }
 
@@ -1012,6 +1048,63 @@ namespace Intersect.Editor.Forms.Editors
         }
 
         #endregion
+
+        private void ChangeImmunity(StatusTypes status, bool isImmune)
+        {
+            if (isImmune && !mEditorItem.Immunities.Contains(status))
+            {
+                mEditorItem.Immunities.Add(status);
+            }
+            else if (!isImmune)
+            {
+                mEditorItem.Immunities.Remove(status);
+            }
+        }
+
+        private void chkKnockback_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Knockback, chkKnockback.Checked);
+        }
+
+        private void chkSilence_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Silence, chkSilence.Checked);
+        }
+
+        private void chkStun_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Stun, chkStun.Checked);
+        }
+
+        private void chkSnare_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Snare, chkSnare.Checked);
+        }
+
+        private void chkBlind_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Blind, chkBlind.Checked);
+        }
+
+        private void chkTransform_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Transform, chkTransform.Checked);
+        }
+
+        private void chkSleep_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Sleep, chkSleep.Checked);
+        }
+
+        private void chkTaunt_CheckedChanged(object sender, EventArgs e)
+        {
+            ChangeImmunity(StatusTypes.Taunt, chkTaunt.Checked);
+        }
+
+        private void nudTenacity_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.Tenacity = (double)nudTenacity.Value;
+        }
     }
 
 }

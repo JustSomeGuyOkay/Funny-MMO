@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Intersect.Client.Core;
 using Intersect.Client.Framework.File_Management;
+using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Gwen.Control;
 using Intersect.Client.Framework.Gwen.Control.EventArguments;
 using Intersect.Client.General;
@@ -14,7 +15,7 @@ using static Intersect.Client.Entities.Player;
 namespace Intersect.Client.Interface.Game
 {
 
-    class GuildWindow
+    partial class GuildWindow
     {
 
         private Button mAddButton;
@@ -297,10 +298,8 @@ namespace Intersect.Client.Interface.Game
                         mContextMenu.AddChild(mTransferOption);
                     }
 
-                    mContextMenu.IsHidden = false;
-                    mContextMenu.SetSize(mContextMenu.Width, mContextMenu.Height);
+                    mContextMenu.SizeToChildren();
                     mContextMenu.Open(Framework.Gwen.Pos.None);
-                    mContextMenu.MoveTo(mContextMenu.X, mContextMenu.Y);
                 }
             }
         }

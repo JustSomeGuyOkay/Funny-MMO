@@ -1,11 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace Intersect.Extensions
 {
 
-    public static class EnumerableExtensions
+    public static partial class EnumerableExtensions
     {
 
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(
@@ -23,14 +24,20 @@ namespace Intersect.Extensions
         }
 
         // Not a very clean solution, but will do for now.
-        public static IEnumerable<T> SelectManyRecursive<T>(this IEnumerable<T> source, Func<T, IEnumerable<T>> selector)
+        public static IEnumerable<T> SelectManyRecursive<T>(this IEnumerable<T> source, Func<T, IEnumerable<T>> selector, CancellationToken cancellationToken = default)
         {
-            var result = source.SelectMany(selector);
-            if (!result.Any())
+            if (cancellationToken == default || cancellationToken.IsCancellationRequested)
             {
-                return result;
+                return Enumerable.Empty<T>();
             }
-            return result.Concat(result.SelectManyRecursive(selector));
+
+            var result = source.SelectMany(selector);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return Enumerable.Empty<T>();
+            }
+
+            return result.Any() ? result.Concat(result.SelectManyRecursive(selector, cancellationToken)) : result;
         }
     }
 }

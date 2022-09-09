@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -11,7 +11,7 @@ using Intersect.Server.Core.CommandParsing.Arguments;
 namespace Intersect.Server.Core.CommandParsing.Commands
 {
 
-    public abstract class Command<TContext> : ICommand where TContext : IApplicationContext
+    public abstract partial class Command<TContext> : ICommand where TContext : IApplicationContext
     {
 
         protected Command(LocaleCommand localization, params ICommandArgument[] arguments)
@@ -180,7 +180,7 @@ namespace Intersect.Server.Core.CommandParsing.Commands
 
         protected TArgument FindArgument<TArgument>(int index = 0)
         {
-            return Arguments.Where(argument => argument?.GetType() == typeof(TArgument))
+            return Arguments.Where(argument => argument is TArgument)
                 .Cast<TArgument>()
                 .ElementAtOrDefault(index);
         }

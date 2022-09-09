@@ -1,14 +1,17 @@
-﻿using System;
+using System;
 
 using Intersect.Enums;
+using Intersect.GameObjects.Annotations;
+using Intersect.Localization;
 
 using Newtonsoft.Json;
 
 namespace Intersect.GameObjects.Maps
 {
-
-    public abstract class MapAttribute
+    public abstract partial class MapAttribute
     {
+        [EditorLabel("Attributes", "AttributeType")]
+        [EditorDictionary("Attributes", "AttributeTypes", FieldType = EditorFieldType.Pivot)]
         public abstract MapAttributes Type { get; }
 
         public static MapAttribute CreateAttribute(MapAttributes type)
@@ -53,23 +56,23 @@ namespace Intersect.GameObjects.Maps
         {
             return JsonConvert.SerializeObject(this);
         }
-
     }
 
-    public class MapBlockedAttribute : MapAttribute
+    public partial class MapBlockedAttribute : MapAttribute
     {
-
-        public override MapAttributes Type { get; } = MapAttributes.Blocked;
-
+        public override MapAttributes Type => MapAttributes.Blocked;
     }
 
-    public class MapItemAttribute : MapAttribute
+    public partial class MapItemAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Item;
 
-        public override MapAttributes Type { get; } = MapAttributes.Item;
-
+        [EditorLabel("Attributes", "Item")]
+        [EditorReference(typeof(ItemBase), nameof(ItemBase.Name))]
         public Guid ItemId { get; set; }
 
+        [EditorLabel("Attributes", "Quantity")]
+        [EditorDisplay]
         public int Quantity { get; set; }
 
         public override MapAttribute Clone()
@@ -80,16 +83,18 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapZDimensionAttribute : MapAttribute
+    public partial class MapZDimensionAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.ZDimension;
 
-        public override MapAttributes Type { get; } = MapAttributes.ZDimension;
-
+        [EditorLabel("Attributes", "ZGateway")]
+        [EditorFormatted("Attributes", "FormatZLevel")]
         public byte GatewayTo { get; set; }
 
+        [EditorLabel("Attributes", "ZBlock")]
+        [EditorFormatted("Attributes", "FormatZLevel")]
         public byte BlockedLevel { get; set; }
 
         public override MapAttribute Clone()
@@ -100,28 +105,44 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapNpcAvoidAttribute : MapAttribute
+    public partial class MapNpcAvoidAttribute : MapAttribute
     {
-
-        public override MapAttributes Type { get; } = MapAttributes.NpcAvoid;
-
+        public override MapAttributes Type => MapAttributes.NpcAvoid;
     }
 
-    public class MapWarpAttribute : MapAttribute
+    public partial class MapWarpAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Warp;
 
-        public override MapAttributes Type { get; } = MapAttributes.Warp;
-
+        [EditorLabel("Attributes", "Map")]
+        [EditorReference(typeof(MapBase), nameof(MapBase.Name))]
         public Guid MapId { get; set; }
 
+        [EditorLabel("Attributes", "WarpX")]
+        [EditorDisplay]
         public byte X { get; set; }
 
+        [EditorLabel("Attributes", "WarpY")]
+        [EditorDisplay]
         public byte Y { get; set; }
 
+        [EditorLabel("Attributes", "WarpDirection")]
+        [EditorDictionary("Directions", "WarpDirections")]
         public WarpDirection Direction { get; set; } = WarpDirection.Retain;
+
+        [EditorLabel("Warping", "ChangeInstance")]
+        [EditorBoolean(Style = BooleanStyle.YesNo)]
+        public bool ChangeInstance { get; set; } = false;
+
+        [EditorLabel("Warping", "InstanceType")]
+        [EditorDictionary("Mapping", "InstanceTypes")]
+        public MapInstanceType InstanceType { get; set; } = MapInstanceType.Overworld;
+
+        [EditorLabel("Attributes", "WarpSound")]
+        [EditorDisplay(EmptyBehavior = EmptyBehavior.ShowNoneOnNullOrEmpty, StringBehavior = StringBehavior.Trim)]
+        public string WarpSound { get; set; }
 
         public override MapAttribute Clone()
         {
@@ -130,21 +151,27 @@ namespace Intersect.GameObjects.Maps
             att.X = X;
             att.Y = Y;
             att.Direction = Direction;
-
+            att.ChangeInstance = ChangeInstance;
+            att.InstanceType = InstanceType;
+            att.WarpSound = WarpSound;
             return att;
         }
-
     }
 
-    public class MapSoundAttribute : MapAttribute
+    public partial class MapSoundAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Sound;
 
-        public override MapAttributes Type { get; } = MapAttributes.Sound;
-
+        [EditorLabel("Attributes", "Sound")]
+        [EditorDisplay(EmptyBehavior = EmptyBehavior.ShowNoneOnNullOrEmpty, StringBehavior = StringBehavior.Trim)]
         public string File { get; set; }
 
+        [EditorLabel("Attributes", "SoundDistance")]
+        [EditorFormatted("Attributes", "DistanceFormat")]
         public byte Distance { get; set; }
 
+        [EditorLabel("Attributes", "SoundInterval")]
+        [EditorTime]
         public int LoopInterval { get; set; }
 
         public override MapAttribute Clone()
@@ -156,16 +183,18 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapResourceAttribute : MapAttribute
+    public partial class MapResourceAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Resource;
 
-        public override MapAttributes Type { get; } = MapAttributes.Resource;
-
+        [EditorLabel("Attributes", "Resource")]
+        [EditorReference(typeof(ResourceBase), nameof(ResourceBase.Name))]
         public Guid ResourceId { get; set; }
 
+        [EditorLabel("Attributes", "ZDimension")]
+        [EditorFormatted("Attributes", "FormatSpawnLevel")]
         public byte SpawnLevel { get; set; }
 
         public override MapAttribute Clone()
@@ -176,16 +205,18 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapAnimationAttribute : MapAttribute
+    public partial class MapAnimationAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Animation;
 
-        public override MapAttributes Type { get; } = MapAttributes.Animation;
-
+        [EditorLabel("Attributes", "MapAnimation")]
+        [EditorReference(typeof(AnimationBase), nameof(AnimationBase.Name))]
         public Guid AnimationId { get; set; }
 
+        [EditorLabel("Attributes", "MapAnimationBlock")]
+        [EditorBoolean(Style = BooleanStyle.YesNo)]
         public bool IsBlock { get; set; }
 
         public override MapAttribute Clone()
@@ -196,21 +227,19 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapGrappleStoneAttribute : MapAttribute
+    public partial class MapGrappleStoneAttribute : MapAttribute
     {
-
-        public override MapAttributes Type { get; } = MapAttributes.GrappleStone;
-
+        public override MapAttributes Type => MapAttributes.GrappleStone;
     }
 
-    public class MapSlideAttribute : MapAttribute
+    public partial class MapSlideAttribute : MapAttribute
     {
+        public override MapAttributes Type => MapAttributes.Slide;
 
-        public override MapAttributes Type { get; } = MapAttributes.Slide;
-
+        [EditorLabel("Attributes", "Direction")]
+        [EditorDictionary("Directions", "WarpDirections")]
         public byte Direction { get; set; }
 
         public override MapAttribute Clone()
@@ -220,36 +249,53 @@ namespace Intersect.GameObjects.Maps
 
             return att;
         }
-
     }
 
-    public class MapCritterAttribute : MapAttribute
+    public partial class MapCritterAttribute : MapAttribute
     {
-        public override MapAttributes Type { get; } = MapAttributes.Critter;
+        public override MapAttributes Type => MapAttributes.Critter;
 
+        [EditorLabel("Attributes", "CritterSprite")]
+        [EditorDisplay(EmptyBehavior = EmptyBehavior.ShowNoneOnNullOrEmpty, StringBehavior = StringBehavior.Trim)]
         public string Sprite { get; set; }
 
+        [EditorLabel("Attributes", "CritterAnimation")]
+        [EditorReference(typeof(AnimationBase), nameof(AnimationBase.Name))]
         public Guid AnimationId { get; set; }
 
         //Movement types will mimic npc options?
         //Random
         //Turn
         //Still
+        [EditorLabel("Attributes", "CritterMovement")]
+        [EditorDictionary("Attributes", "CritterMovements")]
         public byte Movement { get; set; }
 
         //Time in MS to traverse a tile once moving
+        [EditorLabel("Attributes", "CritterSpeed")]
+        [EditorTime]
         public int Speed { get; set; }
 
         //Time in MS between movements?
+        [EditorLabel("Attributes", "CritterFrequency")]
+        [EditorTime]
         public int Frequency { get; set; }
 
         //Lower, Middle, Upper
+        [EditorLabel("Attributes", "CritterLayer")]
+        [EditorDictionary("Attributes", "CritterLayers")]
         public byte Layer { get; set; }
 
+        [EditorLabel("Attributes", "CritterDirection")]
+        [EditorDictionary("Directions", "CritterDirections")]
         public byte Direction { get; set; }
 
+        [EditorLabel("Attributes", "CritterIgnoreNpcAvoids")]
+        [EditorBoolean(Style = BooleanStyle.YesNo)]
         public bool IgnoreNpcAvoids { get; set; }
 
+        [EditorLabel("Attributes", "CritterBlockPlayers")]
+        [EditorBoolean(Style = BooleanStyle.YesNo)]
         public bool BlockPlayers { get; set; }
 
         public override MapAttribute Clone()
@@ -262,7 +308,6 @@ namespace Intersect.GameObjects.Maps
             att.Frequency = Frequency;
             att.Layer = Layer;
             att.IgnoreNpcAvoids = IgnoreNpcAvoids;
-
 
             return att;
         }

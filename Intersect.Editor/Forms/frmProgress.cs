@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 
 using Intersect.Editor.Localization;
@@ -20,9 +20,9 @@ namespace Intersect.Editor.Forms
         public FrmProgress()
         {
             InitializeComponent();
-            InitLocalization();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-            this.Icon = Properties.Resources.Icon;
+            InitLocalization();
         }
 
         private void InitLocalization()
@@ -61,6 +61,11 @@ namespace Intersect.Editor.Forms
 
         private void tmrUpdater_Tick(object sender, EventArgs e)
         {
+            if (!IsHandleCreated)
+            {
+                return;
+            }
+
             if (!InvokeRequired)
             {
                 lblStatus.Text = mStatusText;
@@ -72,7 +77,5 @@ namespace Intersect.Editor.Forms
                 }
             }
         }
-
     }
-
 }

@@ -11,7 +11,7 @@ using NUnit.Framework;
 namespace Intersect.Plugins.Manifests.Types
 {
     [TestFixture]
-    public class AuthorsTests
+    public partial class AuthorsTests
     {
         #region Test Constants
 
@@ -199,7 +199,7 @@ namespace Intersect.Plugins.Manifests.Types
 
             var mockComparer = new Mock<IEqualityComparer>();
             mockComparer.Setup(setupComparer => setupComparer.Equals(It.IsAny<object>(), It.IsAny<object>()))
-                ?.Returns<object, object>((a, b) => a?.Equals(b) ?? false);
+                ?.Returns<object, object>((a, b) => b?.Equals(a) ?? false);
 
             Debug.Assert(mockComparer.Object != null, "mockComparer.Object != null");
             Assert.IsTrue(authors.Equals(objectAuthors, mockComparer.Object));

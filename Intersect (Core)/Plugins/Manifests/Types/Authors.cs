@@ -13,7 +13,7 @@ namespace Intersect.Plugins.Manifests.Types
     /// <summary>
     /// Immutable container structure for multiple <see cref="Author"/>s.
     /// </summary>
-    public struct Authors : IComparable<IEnumerable<Author>>,
+    public partial struct Authors : IComparable<IEnumerable<Author>>,
         IComparable<IEnumerable<string>>,
         IEquatable<IEnumerable<Author>>,
         IEquatable<IEnumerable<string>>,
@@ -117,7 +117,20 @@ namespace Intersect.Plugins.Manifests.Types
         }
 
         /// <inheritdoc />
-        public bool Equals(object other, IEqualityComparer comparer) => comparer.Equals(this, other);
+        public bool Equals(object other, IEqualityComparer comparer)
+        {
+            switch (other)
+            {
+                case IEnumerable<Author> authors:
+                    return comparer.Equals(mAuthors, authors);
+
+                case IEnumerable<string> authorStrings:
+                    return comparer.Equals(this, authorStrings);
+
+                default:
+                    throw new NotSupportedException(ExceptionComparisonNotSupported);
+            }
+        }
 
         /// <inheritdoc />
         public bool Equals(IEnumerable<Author> other) => Equals(other, EqualsElement);

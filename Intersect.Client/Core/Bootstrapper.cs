@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 
 using Intersect.Factories;
 using Intersect.Logging;
@@ -15,7 +15,7 @@ using System.Linq;
 namespace Intersect.Client.Core
 {
 
-    internal static class Bootstrapper
+    internal static partial class Bootstrapper
     {
         public static ClientContext Context { get; private set; }
 
@@ -55,9 +55,14 @@ namespace Intersect.Client.Core
             if (!string.IsNullOrWhiteSpace(commandLineOptions.WorkingDirectory))
             {
                 var workingDirectory = commandLineOptions.WorkingDirectory.Trim();
-                if (Directory.Exists(workingDirectory))
+                var resolvedWorkingDirectory = Path.GetFullPath(workingDirectory);
+                if (Directory.Exists(resolvedWorkingDirectory))
                 {
-                    Directory.SetCurrentDirectory(workingDirectory);
+                    Environment.CurrentDirectory = resolvedWorkingDirectory;
+                }
+                else
+                {
+                    Log.Warn($"Failed to set working directory to '{workingDirectory}', path does not exist: {resolvedWorkingDirectory}");
                 }
             }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -26,7 +26,7 @@ using Intersect.Utilities;
 
 namespace Intersect.Server.Core
 {
-    internal static class Bootstrapper
+    internal static partial class Bootstrapper
     {
 
         static Bootstrapper()

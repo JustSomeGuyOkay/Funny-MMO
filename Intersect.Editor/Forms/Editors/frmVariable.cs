@@ -30,10 +30,16 @@ namespace Intersect.Editor.Forms.Editors
 
         private List<string> mKnownFolders = new List<string>();
 
+        private List<string> mGuildKnownFolders = new List<string>();
+
+        private List<string> mGuildExpandedFolders = new List<string>();
+
         public FrmSwitchVariable()
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             InitLocalization();
             nudVariableValue.Minimum = long.MinValue;
             nudVariableValue.Maximum = long.MaxValue;
@@ -52,6 +58,10 @@ namespace Intersect.Editor.Forms.Editors
                 else if (rdoGlobalVariables.Checked)
                 {
                     obj = ServerVariableBase.Get(id);
+                }
+                else if (rdoGuildVariables.Checked)
+                {
+                    obj = GuildVariableBase.Get(id);
                 }
 
                 if (obj != null)
@@ -74,6 +84,7 @@ namespace Intersect.Editor.Forms.Editors
             grpList.Text = Strings.VariableEditor.list;
             rdoPlayerVariables.Text = Strings.VariableEditor.playervariables;
             rdoGlobalVariables.Text = Strings.VariableEditor.globalvariables;
+            rdoGuildVariables.Text = Strings.VariableEditor.guildvariables;
             grpEditor.Text = Strings.VariableEditor.editor;
             lblName.Text = Strings.VariableEditor.name;
             grpValue.Text = Strings.VariableEditor.value;
@@ -119,6 +130,15 @@ namespace Intersect.Editor.Forms.Editors
                     UpdateEditor();
                 }
             }
+            else if (type == GameObjectType.GuildVariable)
+            {
+                InitEditor();
+                if (mEditorItem != null && !GuildVariableBase.Lookup.Values.Contains(mEditorItem))
+                {
+                    mEditorItem = null;
+                    UpdateEditor();
+                }
+            }
         }
 
         private void toolStripItemNew_Click(object sender, EventArgs e)
@@ -130,6 +150,10 @@ namespace Intersect.Editor.Forms.Editors
             else if (rdoGlobalVariables.Checked)
             {
                 PacketSender.SendCreateObject(GameObjectType.ServerVariable);
+            }
+            else if (rdoGuildVariables.Checked)
+            {
+                PacketSender.SendCreateObject(GameObjectType.GuildVariable);
             }
         }
 
@@ -148,7 +172,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.VariableEditor.deleteprompt, Strings.VariableEditor.deletecaption,
-                        DarkDialogButton.YesNo, Properties.Resources.Icon
+                        DarkDialogButton.YesNo, Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -196,7 +220,15 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem = null;
             lstGameObjects.ClearExpandedFolders();
             InitEditor();
-            
+
+        }
+
+        private void rdoGuildVariables_CheckedChanged(object sender, EventArgs e)
+        {
+            mEditorItem = null;
+            lstGameObjects.ClearExpandedFolders();
+            InitEditor();
+
         }
 
         private void UpdateToolStripItems()
@@ -228,6 +260,14 @@ namespace Intersect.Editor.Forms.Editors
                     cmbVariableType.SelectedIndex = (int) (((ServerVariableBase) mEditorItem).Type - 1);
                     grpValue.Show();
                 }
+                else if (rdoGuildVariables.Checked)
+                {
+                    lblObject.Text = Strings.VariableEditor.guildvariable;
+                    txtObjectName.Text = ((GuildVariableBase)mEditorItem).Name;
+                    txtId.Text = ((GuildVariableBase)mEditorItem).TextId;
+                    cmbFolder.Text = ((GuildVariableBase)mEditorItem).Folder;
+                    cmbVariableType.SelectedIndex = (int)(((GuildVariableBase)mEditorItem).Type - 1);
+                }
 
                 InitValueGroup();
             }
@@ -255,6 +295,12 @@ namespace Intersect.Editor.Forms.Editors
                     var obj = ServerVariableBase.Get((Guid) lstGameObjects.SelectedNode.Tag);
                     lstGameObjects.SelectedNode.Text = obj.Name + " = " + obj.Value.ToString(obj.Type);
                 }
+                else if (rdoPlayerVariables.Checked)
+                {
+                    var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
+                    lstGameObjects.SelectedNode.Text = obj.Name;
+                    grpValue.Hide();
+                }
             }
         }
 
@@ -276,6 +322,12 @@ namespace Intersect.Editor.Forms.Editors
                     obj.Name = txtObjectName.Text;
                     lstGameObjects.UpdateText(obj.Name + " = " + obj.Value.ToString());
                 }
+                else if (rdoGuildVariables.Checked)
+                {
+                    var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
+                    obj.Name = txtObjectName.Text;
+                    lstGameObjects.UpdateText(obj.Name);
+                }
             }
         }
 
@@ -296,6 +348,11 @@ namespace Intersect.Editor.Forms.Editors
                 else if (rdoGlobalVariables.Checked)
                 {
                     var obj = ServerVariableBase.Get((Guid) lstGameObjects.SelectedNode.Tag);
+                    obj.TextId = txtId.Text;
+                }
+                else if (rdoGuildVariables.Checked)
+                {
+                    var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
                     obj.TextId = txtId.Text;
                 }
             }
@@ -331,6 +388,11 @@ namespace Intersect.Editor.Forms.Editors
                     var obj = ServerVariableBase.Get((Guid) lstGameObjects.SelectedNode.Tag);
                     obj.Type = (VariableDataTypes) (cmbVariableType.SelectedIndex + 1);
                 }
+                else if (rdoGuildVariables.Checked)
+                {
+                    var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
+                    obj.Type = (VariableDataTypes)(cmbVariableType.SelectedIndex + 1);
+                }
 
                 InitValueGroup();
                 UpdateSelection();
@@ -339,7 +401,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void InitValueGroup()
         {
-            if (rdoPlayerVariables.Checked)
+            if (rdoPlayerVariables.Checked || rdoGuildVariables.Checked)
             {
                 grpValue.Hide();
             }
@@ -424,9 +486,13 @@ namespace Intersect.Editor.Forms.Editors
             {
                 grpVariables.Text = rdoPlayerVariables.Text;
             }
-            else
+            else if (rdoGlobalVariables.Checked)
             {
                 grpVariables.Text = rdoGlobalVariables.Text;
+            }
+            else if (rdoGuildVariables.Checked)
+            {
+                grpVariables.Text = rdoGuildVariables.Text;
             }
 
             grpEditor.Hide();
@@ -477,6 +543,25 @@ namespace Intersect.Editor.Forms.Editors
                 cmbFolder.Items.AddRange(mGlobalKnownFolders.ToArray());
                 lblId.Text = Strings.VariableEditor.textidgv;
             }
+            else if (rdoGuildVariables.Checked)
+            {
+                foreach (var itm in GuildVariableBase.Lookup)
+                {
+                    if (!string.IsNullOrEmpty(((GuildVariableBase)itm.Value).Folder) &&
+                        !mFolders.Contains(((GuildVariableBase)itm.Value).Folder))
+                    {
+                        mFolders.Add(((GuildVariableBase)itm.Value).Folder);
+                        if (!mGuildKnownFolders.Contains(((GuildVariableBase)itm.Value).Folder))
+                        {
+                            mGuildKnownFolders.Add(((GuildVariableBase)itm.Value).Folder);
+                        }
+                    }
+                }
+
+                mGuildKnownFolders.Sort();
+                cmbFolder.Items.AddRange(mGuildKnownFolders.ToArray());
+                lblId.Text = Strings.VariableEditor.textidguildvar;
+            }
 
             mFolders.Sort();
 
@@ -487,10 +572,15 @@ namespace Intersect.Editor.Forms.Editors
                 items = PlayerVariableBase.Lookup.OrderBy(p => p.Value?.Name).Select(pair => new KeyValuePair<Guid, KeyValuePair<string, string>>(pair.Key,
                     new KeyValuePair<string, string>(((PlayerVariableBase)pair.Value)?.Name ?? Models.DatabaseObject<PlayerVariableBase>.Deleted, ((PlayerVariableBase)pair.Value)?.Folder ?? ""))).ToArray();
             }
-            else
+            else if (rdoGlobalVariables.Checked)
             {
                 items = ServerVariableBase.Lookup.OrderBy(p => p.Value?.Name).Select(pair => new KeyValuePair<Guid, KeyValuePair<string, string>>(pair.Key,
                     new KeyValuePair<string, string>(((ServerVariableBase)pair.Value)?.Name ?? Models.DatabaseObject<ServerVariableBase>.Deleted + " = " + ((ServerVariableBase)pair.Value)?.Value.ToString(((ServerVariableBase)pair.Value).Type) ?? "", ((ServerVariableBase)pair.Value)?.Folder ?? ""))).ToArray();
+            }
+            else if (rdoGuildVariables.Checked)
+            {
+                items = GuildVariableBase.Lookup.OrderBy(p => p.Value?.TimeCreated).Select(pair => new KeyValuePair<Guid, KeyValuePair<string, string>>(pair.Key,
+                    new KeyValuePair<string, string>(((GuildVariableBase)pair.Value)?.Name ?? Models.DatabaseObject<GuildVariableBase>.Deleted, ((GuildVariableBase)pair.Value)?.Folder ?? ""))).ToArray();
             }
 
             lstGameObjects.Repopulate(items, mFolders, btnAlphabetical.Checked, CustomSearch(), txtSearch.Text);
@@ -524,6 +614,12 @@ namespace Intersect.Editor.Forms.Editors
                             obj.Folder = folderName;
                             mGlobalExpandedFolders.Add(folderName);
                         }
+                        else if (rdoGuildVariables.Checked)
+                        {
+                            var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
+                            obj.Folder = folderName;
+                            mGuildExpandedFolders.Add(folderName);
+                        }
 
                         InitEditor();
                         cmbFolder.Text = folderName;
@@ -544,6 +640,11 @@ namespace Intersect.Editor.Forms.Editors
                 else if (rdoGlobalVariables.Checked)
                 {
                     var obj = ServerVariableBase.Get((Guid) lstGameObjects.SelectedNode.Tag);
+                    obj.Folder = cmbFolder.Text;
+                }
+                else if (rdoGuildVariables.Checked)
+                {
+                    var obj = GuildVariableBase.Get((Guid)lstGameObjects.SelectedNode.Tag);
                     obj.Folder = cmbFolder.Text;
                 }
 
@@ -596,7 +697,6 @@ namespace Intersect.Editor.Forms.Editors
         }
 
         #endregion
-
     }
 
 }

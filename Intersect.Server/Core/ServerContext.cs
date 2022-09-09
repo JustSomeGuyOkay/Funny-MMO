@@ -28,6 +28,7 @@ using Intersect.Logging.Output;
 using System.Collections.Immutable;
 using System.Collections.Generic;
 using Intersect.Plugins.Interfaces;
+using Intersect.Server.Database.PlayerData.Players;
 
 #if WEBSOCKETS
 using Intersect.Server.Networking.Websockets;
@@ -38,7 +39,7 @@ namespace Intersect.Server.Core
     /// <summary>
     /// Implements <see cref="IServerContext"/>.
     /// </summary>
-    internal sealed class ServerContext : ApplicationContext<ServerContext, ServerCommandLineOptions>, IServerContext
+    internal sealed partial class ServerContext : ApplicationContext<ServerContext, ServerCommandLineOptions>, IServerContext
     {
         internal ServerContext(ServerCommandLineOptions startupOptions, Logger logger, IPacketHelper packetHelper) : base(
             startupOptions, logger, packetHelper
@@ -120,6 +121,18 @@ namespace Intersect.Server.Core
                 foreach (var user in Database.PlayerData.User.OnlineList.ToArray())
                 {
                     savingTasks.Add(Task.Run(() => user.Save()));
+                }
+
+                Task.WaitAll(savingTasks.ToArray());
+
+
+                Log.Info("Saving loaded guilds....");
+
+                savingTasks.Clear();
+                //Should we send out guild updates?
+                foreach (var guild in Guild.Guilds)
+                {
+                    savingTasks.Add(Task.Run(() => guild.Value.Save()));
                 }
 
                 Task.WaitAll(savingTasks.ToArray());

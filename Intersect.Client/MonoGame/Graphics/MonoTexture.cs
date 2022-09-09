@@ -2,19 +2,19 @@
 using System.IO;
 
 using Intersect.Client.Framework.Graphics;
-using Intersect.Client.General;
 using Intersect.Client.Interface.Game.Chat;
 using Intersect.Client.Localization;
 using Intersect.Compression;
 using Intersect.IO.Files;
 using Intersect.Logging;
+using Intersect.Utilities;
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Intersect.Client.MonoGame.Graphics
 {
-    public class MonoTexture : GameTexture
+    public partial class MonoTexture : GameTexture
     {
         private GraphicsDevice mGraphicsDevice;
 
@@ -152,7 +152,7 @@ namespace Intersect.Client.MonoGame.Graphics
 
         public void ResetAccessTime()
         {
-            mLastAccessTime = Globals.System.GetTimeMs() + 15000;
+            mLastAccessTime = Timing.Global.Milliseconds + 15000;
         }
 
         public override string GetName()
@@ -268,7 +268,7 @@ namespace Intersect.Client.MonoGame.Graphics
                 return;
             }
 
-            if (mLastAccessTime >= Globals.System.GetTimeMs())
+            if (mLastAccessTime >= Timing.Global.Milliseconds)
             {
                 return;
             }

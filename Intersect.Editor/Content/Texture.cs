@@ -2,15 +2,15 @@
 using System.IO;
 
 using Intersect.Editor.Core;
-using Intersect.Editor.General;
 using Intersect.IO.Files;
 using Intersect.Logging;
+using Intersect.Utilities;
 
 using Microsoft.Xna.Framework.Graphics;
 
 namespace Intersect.Editor.Content
 {
-    public class Texture
+    public partial class Texture
     {
         private readonly string mPath;
 
@@ -79,7 +79,7 @@ namespace Intersect.Editor.Content
 
         public void ResetAccessTime()
         {
-            mLastAccessTime = Globals.System.GetTimeMs() + 15000;
+            mLastAccessTime = Timing.Global.Milliseconds + 15000;
         }
 
         public int GetWidth()
@@ -187,7 +187,7 @@ namespace Intersect.Editor.Content
                 return;
             }
 
-            if (mLastAccessTime >= Globals.System.GetTimeMs())
+            if (mLastAccessTime >= Timing.Global.Milliseconds)
             {
                 return;
             }

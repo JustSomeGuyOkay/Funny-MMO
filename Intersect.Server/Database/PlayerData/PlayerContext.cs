@@ -17,7 +17,7 @@ using Microsoft.EntityFrameworkCore.Internal;
 namespace Intersect.Server.Database.PlayerData
 {
 
-    public class PlayerContext : IntersectDbContext<PlayerContext>, IPlayerContext
+    public partial class PlayerContext : IntersectDbContext<PlayerContext>, IPlayerContext
     {
 
         public PlayerContext() : base(DefaultConnectionStringBuilder)
@@ -59,7 +59,7 @@ namespace Intersect.Server.Database.PlayerData
 
         public DbSet<SpellSlot> Player_Spells { get; set; }
 
-        public DbSet<Variable> Player_Variables { get; set; }
+        public DbSet<PlayerVariable> Player_Variables { get; set; }
 
         public DbSet<Bag> Bags { get; set; }
 
@@ -68,6 +68,8 @@ namespace Intersect.Server.Database.PlayerData
         public DbSet<Guild> Guilds { get; set; }
 
         public DbSet<GuildBankSlot> Guild_Bank { get; set; }
+
+        public DbSet<GuildVariable> Guild_Variables { get; set; }
 
         internal async ValueTask Commit(
             bool commit = false,
@@ -107,7 +109,7 @@ namespace Intersect.Server.Database.PlayerData
             modelBuilder.Entity<Player>().HasMany(b => b.Items).WithOne(p => p.Player);
 
             modelBuilder.Entity<Player>().HasMany(b => b.Variables).WithOne(p => p.Player);
-            modelBuilder.Entity<Variable>().HasIndex(p => new {p.VariableId, CharacterId = p.PlayerId}).IsUnique();
+            modelBuilder.Entity<PlayerVariable>().HasIndex(p => new {p.VariableId, CharacterId = p.PlayerId}).IsUnique();
 
             modelBuilder.Entity<Player>().HasMany(b => b.Hotbar).WithOne(p => p.Player);
 
@@ -127,6 +129,9 @@ namespace Intersect.Server.Database.PlayerData
 
             modelBuilder.Entity<Guild>().HasMany(b => b.Bank).WithOne(p => p.Guild);
             modelBuilder.Entity<GuildBankSlot>().HasOne(b => b.Bag);
+
+            modelBuilder.Entity<Guild>().HasMany(b => b.Variables).WithOne(p => p.Guild);
+            modelBuilder.Entity<GuildVariable>().HasIndex(p => new { p.VariableId, GuildId = p.GuildId }).IsUnique();
         }
 
         public void Seed()

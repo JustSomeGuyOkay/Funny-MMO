@@ -30,6 +30,7 @@ namespace Intersect.Editor.Forms.Editors
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
         }
@@ -112,11 +113,11 @@ namespace Intersect.Editor.Forms.Editors
             }
 
             cmbBuySound.Items.Clear();
-            cmbBuySound.Items.Add(Strings.General.none);
+            cmbBuySound.Items.Add(Strings.General.None);
             cmbBuySound.Items.AddRange(GameContentManager.SmartSortedSoundNames);
 
             cmbSellSound.Items.Clear();
-            cmbSellSound.Items.Add(Strings.General.none);
+            cmbSellSound.Items.Add(Strings.General.None);
             cmbSellSound.Items.AddRange(GameContentManager.SmartSortedSoundNames);
 
             InitLocalization();
@@ -402,7 +403,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.ShopEditor.deleteprompt, Strings.ShopEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -435,7 +436,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.ShopEditor.undoprompt, Strings.ShopEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {

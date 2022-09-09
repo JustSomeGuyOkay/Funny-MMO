@@ -1,4 +1,4 @@
-﻿using Intersect.Enums;
+using Intersect.Enums;
 using MessagePack;
 
 namespace Intersect.Admin.Actions
@@ -17,7 +17,8 @@ namespace Intersect.Admin.Actions
     [Union(10, typeof(WarpToLocationAction))]
     [Union(11, typeof(WarpToMapAction))]
     [Union(12, typeof(WarpToMeAction))]
-    public abstract class AdminAction
+    [Union(13, typeof(ReturnToOverworldAction))]
+    public abstract partial class AdminAction
     {
         [Key(0)]
         public abstract AdminActions Action { get; }

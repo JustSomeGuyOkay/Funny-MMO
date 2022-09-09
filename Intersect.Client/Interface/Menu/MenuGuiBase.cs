@@ -2,6 +2,7 @@
 
 using Intersect.Client.Core;
 using Intersect.Client.Framework.File_Management;
+using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Gwen.Control;
 using Intersect.Client.Localization;
 using Intersect.Client.Networking;
@@ -9,7 +10,7 @@ using Intersect.Client.Networking;
 namespace Intersect.Client.Interface.Menu
 {
 
-    public class MenuGuiBase : IMutableInterface
+    public partial class MenuGuiBase : IMutableInterface
     {
 
         private static MainMenu.NetworkStatusHandler sNetworkStatusChanged;
@@ -50,7 +51,7 @@ namespace Intersect.Client.Interface.Menu
                 Strings.Server.StatusLabel.ToString(MainMenu.ActiveNetworkStatus.ToLocalizedString());
         }
 
-        public void Draw()
+        public void Update()
         {
             if (mShouldReset)
             {
@@ -59,6 +60,10 @@ namespace Intersect.Client.Interface.Menu
             }
 
             MainMenu.Update();
+        }
+
+        public void Draw()
+        {
             mMenuCanvas.RenderCanvas();
         }
 

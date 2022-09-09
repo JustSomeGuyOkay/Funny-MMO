@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using Intersect.GameObjects;
@@ -6,6 +6,7 @@ using Intersect.Server.Entities.Combat;
 using Intersect.Server.Entities.Events;
 using Intersect.Server.General;
 using Intersect.Server.Networking;
+using Intersect.Utilities;
 
 namespace Intersect.Server.Entities
 {
@@ -23,7 +24,7 @@ namespace Intersect.Server.Entities
 
         public ProjectileBase ProjectileBase;
 
-        public long TransmittionTimer = Globals.Timing.Milliseconds;
+        public long TransmittionTimer = Timing.Global.Milliseconds;
 
         public float X;
 
@@ -33,6 +34,8 @@ namespace Intersect.Server.Entities
 
         public bool Dead;
 
+        public Guid MapInstanceId;
+
         private List<Guid> mEntitiesCollided = new List<Guid>();
 
         public ProjectileSpawn(
@@ -41,18 +44,20 @@ namespace Intersect.Server.Entities
             byte y,
             byte z,
             Guid mapId,
+            Guid mapInstanceId,
             ProjectileBase projectileBase,
             Projectile parent
         )
         {
             MapId = mapId;
+            MapInstanceId = mapInstanceId;
             X = x;
             Y = y;
             Z = z;
             Dir = dir;
             ProjectileBase = projectileBase;
             Parent = parent;
-            TransmittionTimer = Globals.Timing.Milliseconds +
+            TransmittionTimer = Timing.Global.Milliseconds +
                                 (long) ((float) ProjectileBase.Speed / (float) ProjectileBase.Range);
         }
 
@@ -61,30 +66,26 @@ namespace Intersect.Server.Entities
             return MapId == mapId && X == x && Y == y && Z == z;
         }
 
-        public bool HitEntity(Entity en)
+        public bool HitEntity(Entity targetEntity)
         {
-            var targetEntity = en;
-            if (targetEntity is EventPageInstance) return false;
-
-            var scalingStat = Enums.Stats.StatCount;
-
-            if (Parent.Spell != null && Parent.Spell.Combat != null)
-            {
-                scalingStat = (Enums.Stats) Parent.Spell.Combat.ScalingStat;
-            }
-            if (Parent.Item != null)
-            {
-                scalingStat = (Enums.Stats) Parent.Item.ScalingStat;
-            }
+            Player targetPlayer = targetEntity as Player;
 
             if (targetEntity != null && targetEntity != Parent.Owner)
             {
-
                 // Have we collided with this entity before? If so, cancel out.
-                if (mEntitiesCollided.Contains(en.Id))
+                if (mEntitiesCollided.Contains(targetEntity.Id))
                 {
                     if (!Parent.Base.PierceTarget)
                     {
+                        if(targetPlayer != null)
+                        {
+                            if(targetPlayer.Map.ZoneType == Enums.MapZones.Safe ||
+                                Parent.Owner is Player plyr && plyr.InParty(targetPlayer))
+                            {
+                                return false;
+                            }
+                        }
+
                         return true;
                     }
                     else
@@ -92,50 +93,47 @@ namespace Intersect.Server.Entities
                         return false;
                     }
                 }
-                mEntitiesCollided.Add(en.Id);
+                mEntitiesCollided.Add(targetEntity.Id);
 
-                if (targetEntity.GetType() == typeof(Player)) //Player
+                if (targetPlayer != null)
                 {
                     if (Parent.Owner != Parent.Target)
                     {
                         Parent.Owner.TryAttack(targetEntity, Parent.Base, Parent.Spell, Parent.Item, Dir);
-                        if (Dir <= 3 && Parent.Base.GrappleHook && !Parent.HasGrappled
-                        ) //Don't handle directional projectile grapplehooks
+
+                        if (Dir <= 3 && ShouldHook(targetEntity) && !Parent.HasGrappled)
                         {
-                            Parent.HasGrappled = true;
-                            Parent.Owner.Dir = Dir;
-                            new Dash(
-                                Parent.Owner, Distance, (byte) Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
-                                Parent.Base.IgnoreActiveResources, Parent.Base.IgnoreExhaustedResources,
-                                Parent.Base.IgnoreZDimension
-                            );
+                            HookEntity();
                         }
 
                         if (!Parent.Base.PierceTarget)
                         {
+                            if (targetPlayer.Map.ZoneType == Enums.MapZones.Safe ||
+                                Parent.Owner is Player plyr && plyr.InParty(targetPlayer))
+                            {
+                                return false;
+                            }
+
                             return true;
                         }
                     }
                 }
-                else if (targetEntity.GetType() == typeof(Resource))
+                else if (targetEntity is Resource targetResource)
                 {
-                    if (((Resource) targetEntity).IsDead() && !ProjectileBase.IgnoreExhaustedResources ||
-                        !((Resource) targetEntity).IsDead() && !ProjectileBase.IgnoreActiveResources)
+                    if(targetResource.IsDead())
                     {
-                        if (Parent.Owner.GetType() == typeof(Player) && !((Resource) targetEntity).IsDead())
+                        if(!ProjectileBase.IgnoreExhaustedResources)
                         {
-                            Parent.Owner.TryAttack(targetEntity, Parent.Base, Parent.Spell, Parent.Item, Dir);
-                            if (Dir <= 3 && Parent.Base.GrappleHook && !Parent.HasGrappled
-                            ) //Don't handle directional projectile grapplehooks
-                            {
-                                Parent.HasGrappled = true;
-                                Parent.Owner.Dir = Dir;
-                                new Dash(
-                                    Parent.Owner, Distance, (byte) Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
-                                    Parent.Base.IgnoreActiveResources, Parent.Base.IgnoreExhaustedResources,
-                                    Parent.Base.IgnoreZDimension
-                                );
-                            }
+                            return true;
+                        }
+                    }
+                    else if (!ProjectileBase.IgnoreActiveResources)
+                    {
+                        Parent.Owner.TryAttack(targetResource, Parent.Base, Parent.Spell, Parent.Item, Dir);
+
+                        if (Dir <= 3 && ShouldHook(targetResource) && !Parent.HasGrappled)
+                        {
+                            HookEntity();
                         }
 
                         return true;
@@ -148,16 +146,10 @@ namespace Intersect.Server.Entities
                         ownerNpc.CanNpcCombat(targetEntity, Parent.Spell != null && Parent.Spell.Combat.Friendly))
                     {
                         Parent.Owner.TryAttack(targetEntity, Parent.Base, Parent.Spell, Parent.Item, Dir);
-                        if (Dir <= 3 && Parent.Base.GrappleHook && !Parent.HasGrappled
-                        ) //Don't handle directional projectile grapplehooks
+
+                        if (Dir <= 3 && ShouldHook(targetEntity) && !Parent.HasGrappled) 
                         {
-                            Parent.HasGrappled = true;
-                            Parent.Owner.Dir = Dir;
-                            new Dash(
-                                Parent.Owner, Distance, (byte) Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
-                                Parent.Base.IgnoreActiveResources, Parent.Base.IgnoreExhaustedResources,
-                                Parent.Base.IgnoreZDimension
-                            );
+                            HookEntity();
                         }
 
                         if (!Parent.Base.PierceTarget)
@@ -169,6 +161,49 @@ namespace Intersect.Server.Entities
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns whether or not to hook the player to the target
+        /// </summary>
+        /// <param name="en"></param>
+        /// <returns></returns>
+        public bool ShouldHook(Entity en)
+        {
+            if(en == null)
+            {
+                return false;
+            }
+
+            switch(en)
+            {
+                case Player _:
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.Player);
+
+                case Npc _:
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.NPC);
+
+                case Resource _:
+                    return ProjectileBase.GrappleHookOptions.Contains(Enums.GrappleOptions.Resource);
+
+                default:
+                    throw new ArgumentException($"Unsupported entity type {en.GetType().FullName}", nameof(en));
+            }
+        }
+
+        /// <summary>
+        /// Hook the player to the target
+        /// </summary>
+        public void HookEntity()
+        {
+            //Don't handle directional projectile grapplehooks
+            Parent.HasGrappled = true;
+            Parent.Owner.Dir = Dir;
+            var _ = new Dash(
+                Parent.Owner, Distance, (byte)Parent.Owner.Dir, Parent.Base.IgnoreMapBlocks,
+                Parent.Base.IgnoreActiveResources, Parent.Base.IgnoreExhaustedResources,
+                Parent.Base.IgnoreZDimension
+            );
         }
 
     }

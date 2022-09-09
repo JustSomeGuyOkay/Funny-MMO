@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
@@ -35,6 +35,8 @@ namespace Intersect.Editor.Forms
         public FrmWarpSelection()
         {
             InitializeComponent();
+            Icon = Icon.ExtractAssociatedIcon(Assembly.GetExecutingAssembly().Location);
+
             InitLocalization();
             mapTreeList1.UpdateMapList(mCurrentMapId);
             pnlMap.Width = Options.TileWidth * Options.MapWidth;
@@ -46,8 +48,6 @@ namespace Intersect.Editor.Forms
                 "DoubleBuffered", BindingFlags.SetProperty | BindingFlags.Instance | BindingFlags.NonPublic, null,
                 pnlMap, new object[] {true}
             );
-
-            this.Icon = Properties.Resources.Icon;
         }
 
         public void InitForm(bool tileSelection = true, List<Guid> restrictMaps = null)
@@ -73,7 +73,7 @@ namespace Intersect.Editor.Forms
 
         private void NodeDoubleClick(object sender, TreeViewEventArgs e)
         {
-            if (e.Node.Tag.GetType() == typeof(MapListMap))
+            if (e.Node.Tag is MapListMap)
             {
                 SelectTile(((MapListMap) e.Node.Tag).MapId, mCurrentX, mCurrentY);
             }

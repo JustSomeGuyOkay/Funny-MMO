@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Windows.Forms;
 
 using Intersect.Core;
 using Intersect.Editor.Content;
 using Intersect.Editor.General;
+using Intersect.Editor.Localization;
 using Intersect.Editor.Maps;
 using Intersect.Enums;
 using Intersect.GameObjects;
@@ -20,7 +21,7 @@ namespace Intersect.Editor.Networking
 {
     internal sealed partial class PacketHandler
     {
-        private sealed class VirtualPacketSender : IPacketSender
+        private sealed partial class VirtualPacketSender : IPacketSender
         {
             public IApplicationContext ApplicationContext { get; }
 
@@ -138,6 +139,14 @@ namespace Intersect.Editor.Networking
         public void HandlePacket(IPacketSender packetSender, ConfigPacket packet)
         {
             Options.LoadFromServer(packet.Config);
+            try
+            {
+                Strings.Load();
+            } catch (Exception exception)
+            {
+                Log.Error(exception);
+                throw;
+            }
         }
 
         //JoinGamePacket
@@ -311,9 +320,33 @@ namespace Intersect.Editor.Networking
         {
             MapList.List.JsonData = packet.MapListData;
             MapList.List.PostLoad(MapBase.Lookup, false, true);
+
+            // If our current map is null, load our previous map as per our stored Id or the first available map.
             if (Globals.CurrentMap == null)
             {
-                Globals.MainForm.EnterMap(MapList.List.FindFirstMap());
+                // Check if we have a map we left off at before proceeding.
+                var firstMap = MapList.List.FindFirstMap();
+                var storedPreference = Preferences.LoadPreference("LastMapOpened");
+                if (!string.IsNullOrWhiteSpace(storedPreference))
+                {
+                    // Check if the map Id isn't empty and if this map still exists.
+                    var storedMapId = Guid.Parse(storedPreference);
+                    if (storedMapId != Guid.Empty && MapList.List.FindMap(storedMapId) != null)
+                    {
+                        Globals.MainForm.EnterMap(storedMapId);
+                    }
+                    // No longer exists, so just load the first.
+                    else
+                    {
+                        Globals.MainForm.EnterMap(firstMap);
+                    }
+                }
+                // Invalid Id, so load the first map.
+                else
+                {
+                    Globals.MainForm.EnterMap(firstMap);
+                }
+                
             }
 
             Globals.MapListWindow.BeginInvoke(Globals.MapListWindow.mapTreeList.MapListDelegate, Guid.Empty, null);
@@ -618,6 +651,20 @@ namespace Intersect.Editor.Networking
 
                     break;
 
+                case GameObjectType.GuildVariable:
+                    if (deleted)
+                    {
+                        var pvar = GuildVariableBase.Get(id);
+                        pvar.Delete();
+                    }
+                    else
+                    {
+                        var pvar = new GuildVariableBase(id);
+                        pvar.Load(json);
+                        GuildVariableBase.Lookup.Set(id, pvar);
+                    }
+
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }

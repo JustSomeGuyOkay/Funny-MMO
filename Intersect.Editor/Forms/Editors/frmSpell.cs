@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -37,6 +37,7 @@ namespace Intersect.Editor.Forms.Editors
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             cmbScalingStat.Items.Clear();
             for (var i = 0; i < (int)Stats.StatCount; i++)
@@ -97,22 +98,25 @@ namespace Intersect.Editor.Forms.Editors
             cmbProjectile.Items.Clear();
             cmbProjectile.Items.AddRange(ProjectileBase.Names);
             cmbCastAnimation.Items.Clear();
-            cmbCastAnimation.Items.Add(Strings.General.none);
+            cmbCastAnimation.Items.Add(Strings.General.None);
             cmbCastAnimation.Items.AddRange(AnimationBase.Names);
             cmbHitAnimation.Items.Clear();
-            cmbHitAnimation.Items.Add(Strings.General.none);
+            cmbHitAnimation.Items.Add(Strings.General.None);
             cmbHitAnimation.Items.AddRange(AnimationBase.Names);
             cmbEvent.Items.Clear();
-            cmbEvent.Items.Add(Strings.General.none);
+            cmbEvent.Items.Add(Strings.General.None);
             cmbEvent.Items.AddRange(EventBase.Names);
+            cmbTickAnimation.Items.Clear();
+            cmbTickAnimation.Items.Add(Strings.General.None);
+            cmbTickAnimation.Items.AddRange(AnimationBase.Names);
 
             cmbSprite.Items.Clear();
-            cmbSprite.Items.Add(Strings.General.none);
+            cmbSprite.Items.Add(Strings.General.None);
             var spellNames = GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Spell);
             cmbSprite.Items.AddRange(spellNames);
 
             cmbTransform.Items.Clear();
-            cmbTransform.Items.Add(Strings.General.none);
+            cmbTransform.Items.Add(Strings.General.None);
             var spriteNames = GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Entity);
             cmbTransform.Items.AddRange(spriteNames);
 
@@ -213,6 +217,7 @@ namespace Intersect.Editor.Forms.Editors
             grpHotDot.Text = Strings.SpellEditor.hotdot;
             chkHOTDOT.Text = Strings.SpellEditor.ishotdot;
             lblTick.Text = Strings.SpellEditor.hotdottick;
+            lblTickAnimation.Text = Strings.SpellEditor.TickAnimation;
 
             grpStats.Text = Strings.SpellEditor.stats;
             lblStr.Text = Strings.SpellEditor.attack;
@@ -284,6 +289,7 @@ namespace Intersect.Editor.Forms.Editors
 
                 cmbCastAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.CastAnimationId) + 1;
                 cmbHitAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.HitAnimationId) + 1;
+                cmbTickAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.TickAnimationId) + 1;
 
                 chkBound.Checked = mEditorItem.Bound;
 
@@ -323,6 +329,9 @@ namespace Intersect.Editor.Forms.Editors
             grpDash.Hide();
             grpEvent.Hide();
             cmbTargetType.Enabled = true;
+
+            // Reset our combat data location, since event type spells can move it.
+            grpCombat.Location = new System.Drawing.Point(grpEvent.Location.X, grpEvent.Location.Y);
 
             if (cmbType.SelectedIndex == (int) SpellTypes.CombatSpell ||
                 cmbType.SelectedIndex == (int) SpellTypes.WarpTo ||
@@ -393,6 +402,8 @@ namespace Intersect.Editor.Forms.Editors
             {
                 grpEvent.Show();
                 cmbEvent.SelectedIndex = EventBase.ListIndex(mEditorItem.EventId) + 1;
+                // Move our combat data down a little bit, it's not a very clean solution but it'll let us display it properly.
+                grpCombat.Location = new System.Drawing.Point(grpEvent.Location.X, grpEvent.Location.Y + grpEvent.Size.Height + 5);
             }
 
             if (cmbType.SelectedIndex == (int) SpellTypes.WarpTo)
@@ -615,7 +626,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.SpellEditor.deleteprompt, Strings.SpellEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -648,7 +659,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.SpellEditor.undoprompt, Strings.SpellEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -1067,6 +1078,12 @@ namespace Intersect.Editor.Forms.Editors
         }
 
         #endregion
+
+        private void cmbTickAnimation_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            Guid animationId = AnimationBase.IdFromList(cmbTickAnimation.SelectedIndex - 1);
+            mEditorItem.TickAnimation = AnimationBase.Get(animationId);
+        }
     }
 
 }

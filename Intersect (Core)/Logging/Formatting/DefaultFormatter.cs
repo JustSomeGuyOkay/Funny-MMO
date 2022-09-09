@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 
 namespace Intersect.Logging.Formatting
@@ -7,7 +7,7 @@ namespace Intersect.Logging.Formatting
     /// <summary>
     /// Basic formatter for text logs, includes details and timestamps.
     /// </summary>
-    public class DefaultFormatter : ILogFormatter
+    public partial class DefaultFormatter : ILogFormatter
     {
 
         public const string DefaultTimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
@@ -106,10 +106,10 @@ namespace Intersect.Logging.Formatting
         {
             if (!string.IsNullOrWhiteSpace(prefix))
             {
-                builder.AppendLine(prefix);
+                builder.Append(prefix);
             }
 
-            builder.AppendLine($@"  Message: {exception.Message}");
+            builder.AppendLine($@"{exception.GetType().Name}: {exception.Message}");
 
             if (exception.StackTrace?.Length < 10000)
             {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 
@@ -15,7 +15,7 @@ using Newtonsoft.Json;
 namespace Intersect.GameObjects
 {
 
-    public class ItemBase : DatabaseObject<ItemBase>, IFolderable
+    public partial class ItemBase : DatabaseObject<ItemBase>, IFolderable
     {
 
         [NotMapped] public ConditionLists UsageRequirements = new ConditionLists();
@@ -236,6 +236,21 @@ namespace Intersect.GameObjects
 
         public int Tool { get; set; } = -1;
 
+        /// <summary>
+        /// Defines the player's chance of successfully defending a hit.
+        /// </summary>
+        public int BlockChance { get; set; }
+
+        /// <summary>
+        /// Sets the damage absorption percentage when successfully defending a hit.
+        /// </summary>
+        public int BlockAmount { get; set; }
+
+        /// <summary>
+        /// Sets the amount of damage absorption to increase the defender's health
+        /// </summary>
+        public int BlockAbsorption { get; set; }
+
         [Column("VitalsGiven")]
         [JsonIgnore]
         public string VitalsJson
@@ -342,7 +357,7 @@ namespace Intersect.GameObjects
     }
 
     [Owned]
-    public class ConsumableData
+    public partial class ConsumableData
     {
 
         public ConsumableType Type { get; set; }
@@ -354,7 +369,7 @@ namespace Intersect.GameObjects
     }
 
     [Owned]
-    public class EffectData
+    public partial class EffectData
     {
 
         public EffectType Type { get; set; }

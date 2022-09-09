@@ -13,7 +13,7 @@ using Newtonsoft.Json;
 namespace Intersect.GameObjects.Maps
 {
 
-    public class MapBase : DatabaseObject<MapBase>
+    public partial class MapBase : DatabaseObject<MapBase>
     {
         [NotMapped]
         [JsonIgnore]
@@ -30,8 +30,6 @@ namespace Intersect.GameObjects.Maps
         [JsonIgnore] [NotMapped] public MapAutotiles Autotiles;
 
         [NotMapped] public List<Guid> EventIds = new List<Guid>();
-
-        [NotMapped] [JsonIgnore] public List<EventBase> EventsCache = new List<EventBase>();
 
         //Core Data
         [JsonIgnore] [NotMapped] public Dictionary<string, Tile[,]> Layers = new Dictionary<string, Tile[,]>();
@@ -331,6 +329,8 @@ namespace Intersect.GameObjects.Maps
 
         public int WeatherIntensity { get; set; }
 
+        public bool HideEquipment { get; set; }
+
         [NotMapped]
         [JsonIgnore]
         public object MapLock => mMapLock;
@@ -345,12 +345,12 @@ namespace Intersect.GameObjects.Maps
             return mCachedAttributeData;
         }
 
-        public class MapInstances : DatabaseObjectLookup
+        public partial class MapControllers : DatabaseObjectLookup
         {
 
             private readonly DatabaseObjectLookup mBaseLookup;
 
-            public MapInstances(DatabaseObjectLookup baseLookup) : base(baseLookup.StoredType)
+            public MapControllers(DatabaseObjectLookup baseLookup) : base(baseLookup.StoredType)
             {
                 if (baseLookup == null)
                 {

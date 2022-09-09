@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Intersect.Server.Database.Logging.Entities
 {
-    public class UserActivityHistory
+    public partial class UserActivityHistory
     {
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)] public Guid Id { get; private set; }
 
@@ -75,8 +75,20 @@ namespace Intersect.Server.Database.Logging.Entities
             DisconnectTimeout,
 
             DisconnectBan,
+            
+            DisconnectBanFail,
 
             DisconnectKick,
+            
+            DisconnectKickFail,
+            
+            Kill,
+            
+            KillFail,
+            
+            Mute,
+            
+            MuteFail,
 
             CreatePlayer,
 

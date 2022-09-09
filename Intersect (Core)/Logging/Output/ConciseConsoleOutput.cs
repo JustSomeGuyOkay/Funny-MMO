@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 
 namespace Intersect.Logging.Output
 {
     // TODO: Figure out what doesn't need to be duplicated between this and ConsoleOutput
-    public class ConciseConsoleOutput : ILogOutput
+    public partial class ConciseConsoleOutput : ILogOutput
     {
 
         public ConciseConsoleOutput(LogLevel logLevel = LogLevel.All)
@@ -53,7 +53,7 @@ namespace Intersect.Logging.Output
             }
 
             var writer = Console.Out;
-            if (LogLevel < LogLevel.Info)
+            if (logLevel < LogLevel.Info)
             {
                 writer = Console.Error;
             }

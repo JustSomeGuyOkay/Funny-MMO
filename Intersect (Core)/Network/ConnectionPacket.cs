@@ -14,7 +14,7 @@ namespace Intersect.Network
     [MessagePackObject]
     [Union(0, typeof(ApprovalPacket))]
     [Union(1, typeof(HailPacket))]
-    public abstract class ConnectionPacket : IntersectPacket
+    public abstract partial class ConnectionPacket : IntersectPacket
     {
         protected const int SIZE_HANDSHAKE_SECRET = 32;
 
@@ -45,7 +45,7 @@ namespace Intersect.Network
 
             Adjusted = Timing.Global.Ticks;
             Offset = Timing.Global.TicksOffset;
-            UTC = Timing.Global.TicksUTC;
+            UTC = Timing.Global.TicksUtc;
         }
 
         [IgnoreMember]

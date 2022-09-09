@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -36,11 +36,12 @@ namespace Intersect.Editor.Forms.Editors
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             cmbEquipmentSlot.Items.Clear();
             cmbEquipmentSlot.Items.AddRange(Options.EquipmentSlots.ToArray());
             cmbToolType.Items.Clear();
-            cmbToolType.Items.Add(Strings.General.none);
+            cmbToolType.Items.Add(Strings.General.None);
             cmbToolType.Items.AddRange(Options.ToolTypes.ToArray());
             cmbEquipmentBonus.Items.Clear();
             for (var i = 0; i < Strings.ItemEditor.bonuseffects.Count; i++)
@@ -49,7 +50,7 @@ namespace Intersect.Editor.Forms.Editors
             }
 
             cmbProjectile.Items.Clear();
-            cmbProjectile.Items.Add(Strings.General.none);
+            cmbProjectile.Items.Add(Strings.General.None);
             cmbProjectile.Items.AddRange(ProjectileBase.Names);
 
             lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
@@ -110,13 +111,13 @@ namespace Intersect.Editor.Forms.Editors
         private void frmItem_Load(object sender, EventArgs e)
         {
             cmbPic.Items.Clear();
-            cmbPic.Items.Add(Strings.General.none);
+            cmbPic.Items.Add(Strings.General.None);
 
             var itemnames = GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Item);
             cmbPic.Items.AddRange(itemnames);
 
             cmbAttackAnimation.Items.Clear();
-            cmbAttackAnimation.Items.Add(Strings.General.none);
+            cmbAttackAnimation.Items.Add(Strings.General.None);
             cmbAttackAnimation.Items.AddRange(AnimationBase.Names);
             cmbScalingStat.Items.Clear();
             for (var x = 0; x < (int)Stats.StatCount; x++)
@@ -125,21 +126,21 @@ namespace Intersect.Editor.Forms.Editors
             }
 
             cmbAnimation.Items.Clear();
-            cmbAnimation.Items.Add(Strings.General.none);
+            cmbAnimation.Items.Add(Strings.General.None);
             cmbAnimation.Items.AddRange(AnimationBase.Names);
             cmbEquipmentAnimation.Items.Clear();
-            cmbEquipmentAnimation.Items.Add(Strings.General.none);
+            cmbEquipmentAnimation.Items.Add(Strings.General.None);
             cmbEquipmentAnimation.Items.AddRange(AnimationBase.Names);
             cmbTeachSpell.Items.Clear();
-            cmbTeachSpell.Items.Add(Strings.General.none);
+            cmbTeachSpell.Items.Add(Strings.General.None);
             cmbTeachSpell.Items.AddRange(SpellBase.Names);
             cmbEvent.Items.Clear();
-            cmbEvent.Items.Add(Strings.General.none);
+            cmbEvent.Items.Add(Strings.General.None);
             cmbEvent.Items.AddRange(EventBase.Names);
             cmbMalePaperdoll.Items.Clear();
-            cmbMalePaperdoll.Items.Add(Strings.General.none);
+            cmbMalePaperdoll.Items.Add(Strings.General.None);
             cmbFemalePaperdoll.Items.Clear();
-            cmbFemalePaperdoll.Items.Add(Strings.General.none);
+            cmbFemalePaperdoll.Items.Add(Strings.General.None);
             var paperdollnames =
                 GameContentManager.GetSmartSortedTextureNames(GameContentManager.TextureType.Paperdoll);
 
@@ -204,9 +205,10 @@ namespace Intersect.Editor.Forms.Editors
             lblBankStackLimit.Text = Strings.ItemEditor.BankStackLimit;
 
             cmbRarity.Items.Clear();
-            for (var i = 0; i < Strings.ItemEditor.rarity.Count; i++)
+            for (var i = 0; i < Options.Instance.Items.RarityTiers.Count; i++)
             {
-                cmbRarity.Items.Add(Strings.ItemEditor.rarity[i]);
+                var rarityName = Options.Instance.Items.RarityTiers[i];
+                cmbRarity.Items.Add(Strings.ItemEditor.rarity[rarityName]);
             }
 
             grpEquipment.Text = Strings.ItemEditor.equipment;
@@ -267,6 +269,11 @@ namespace Intersect.Editor.Forms.Editors
             {
                 cmbAttackSpeedModifier.Items.Add(val.ToString());
             }
+
+            grpShieldProperties.Text = Strings.ItemEditor.ShieldProperties;
+            lblBlockChance.Text = Strings.ItemEditor.BlockChance;
+            lblBlockAmount.Text = Strings.ItemEditor.BlockAmount;
+            lblBlockDmgAbs.Text = Strings.ItemEditor.BlockAbsorption;
 
             lblMalePaperdoll.Text = Strings.ItemEditor.malepaperdoll;
             lblFemalePaperdoll.Text = Strings.ItemEditor.femalepaperdoll;
@@ -363,6 +370,9 @@ namespace Intersect.Editor.Forms.Editors
                 nudDeathDropChance.Value = mEditorItem.DropChanceOnDeath;
                 cmbToolType.SelectedIndex = mEditorItem.Tool + 1;
                 cmbAttackAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.AttackAnimationId) + 1;
+                nudBlockChance.Value = mEditorItem.BlockChance;
+                nudBlockAmount.Value = mEditorItem.BlockAmount;
+                nudBlockDmgAbs.Value = mEditorItem.BlockAbsorption;
                 RefreshExtendedData();
                 if (mEditorItem.ItemType == ItemTypes.Equipment)
                 {
@@ -565,11 +575,18 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem.EquipmentSlot = cmbEquipmentSlot.SelectedIndex;
             if (cmbEquipmentSlot.SelectedIndex == Options.WeaponIndex)
             {
+                grpShieldProperties.Hide();
                 grpWeaponProperties.Show();
+            }
+            else if (cmbEquipmentSlot.SelectedIndex == Options.ShieldIndex)
+            {
+                grpWeaponProperties.Hide();
+                grpShieldProperties.Show();
             }
             else
             {
                 grpWeaponProperties.Hide();
+                grpShieldProperties.Hide();
 
                 mEditorItem.Projectile = null;
                 mEditorItem.Tool = -1;
@@ -620,7 +637,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.ItemEditor.deleteprompt, Strings.ItemEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -653,7 +670,7 @@ namespace Intersect.Editor.Forms.Editors
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.ItemEditor.undoprompt, Strings.ItemEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -1029,6 +1046,21 @@ namespace Intersect.Editor.Forms.Editors
             DrawItemPaperdoll(Gender.Female);
         }
 
+        private void nudBlockChance_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.BlockChance = (int)nudBlockChance.Value;
+        }
+
+        private void nudBlockAmount_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.BlockAmount = (int)nudBlockAmount.Value;
+        }
+
+        private void nudBlockDmgAbs_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.BlockAbsorption = (int)nudBlockDmgAbs.Value;
+        }
+
         /// <summary>
         /// Draw the item Icon to the form.
         /// </summary>
@@ -1153,10 +1185,10 @@ namespace Intersect.Editor.Forms.Editors
                     }
                 }
 
-                if (!string.IsNullOrWhiteSpace(((ItemBase)itm.Value).CooldownGroup) && 
+                if (!string.IsNullOrWhiteSpace(((ItemBase)itm.Value).CooldownGroup) &&
                     !mKnownCooldownGroups.Contains(((ItemBase)itm.Value).CooldownGroup))
                 {
-                    mKnownCooldownGroups.Add(((ItemBase)itm.Value).CooldownGroup);    
+                    mKnownCooldownGroups.Add(((ItemBase)itm.Value).CooldownGroup);
                 }
             }
 
@@ -1260,6 +1292,7 @@ namespace Intersect.Editor.Forms.Editors
 
 
         #endregion
+
     }
 
 }

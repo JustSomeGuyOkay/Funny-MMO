@@ -20,16 +20,16 @@ using Newtonsoft.Json.Linq;
 namespace Intersect.Server.Database.GameData.Migrations
 {
 
-    public static class Beta6Migration
+    public static partial class Beta6Migration
     {
 
-        private static Ceras mCeras;
+        private static Intersect.Network.Ceras mCeras;
 
         public static void Run(GameContext context)
         {
             var nameTypeDict = new Dictionary<string, Type>();
             nameTypeDict.Add("Intersect.GameObjects.Maps.TileArray[]", typeof(LegacyTileArray[]));
-            mCeras = new Ceras(nameTypeDict);
+            mCeras = new Intersect.Network.Ceras(nameTypeDict);
 
             RemoveByteBufferUsageFromMaps(context);
 
@@ -725,14 +725,14 @@ namespace Intersect.Server.Database.GameData.Migrations
             return null;
         }
 
-        private struct LegacyTileArray
+        private partial struct LegacyTileArray
         {
 
             public LegacyTile[,] Tiles;
 
         }
 
-        private struct LegacyTile
+        private partial struct LegacyTile
         {
 
             public Guid TilesetId;

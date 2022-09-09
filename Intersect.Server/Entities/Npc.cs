@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,7 +46,8 @@ namespace Intersect.Server.Entities
                 Entity top = null;
                 foreach (var pair in DamageMap)
                 {
-                    if (pair.Value > damage)
+                    // Only include players on the current instance
+                    if (pair.Value > damage && pair.Key.MapInstanceId == MapInstanceId)
                     {
                         top = pair.Key;
                         damage = pair.Value;
@@ -85,7 +86,7 @@ namespace Intersect.Server.Entities
         /// <summary>
         /// The map on which this NPC was "aggro'd" and started chasing a target.
         /// </summary>
-        public MapInstance AggroCenterMap;
+        public MapController AggroCenterMap;
 
         /// <summary>
         /// The X value on which this NPC was "aggro'd" and started chasing a target.
@@ -108,6 +109,7 @@ namespace Intersect.Server.Entities
             Sprite = myBase.Sprite;
             Color = myBase.Color;
             Level = myBase.Level;
+            Immunities = myBase.Immunities;
             Base = myBase;
             Despawnable = despawnable;
 
@@ -168,10 +170,19 @@ namespace Intersect.Server.Entities
                 AggroCenterY = 0;
                 AggroCenterZ = 0;
 
-                MapInstance.Get(MapId).RemoveEntity(this);
+                if (MapController.TryGetInstanceFromMap(MapId, MapInstanceId, out var instance))
+                {
+                    instance.RemoveEntity(this);
+                }
                 PacketSender.SendEntityDie(this);
                 PacketSender.SendEntityLeave(this);
             }
+        }
+
+        protected override bool ShouldDropItem(Entity killer, ItemBase itemDescriptor, Item item, float dropRateModifier, out Guid lootOwner)
+        {
+            lootOwner = (killer as Player)?.Id ?? Id;
+            return base.ShouldDropItem(killer, itemDescriptor, item, dropRateModifier, out _);
         }
 
         public bool TargetHasStealth(Entity target)
@@ -217,18 +228,18 @@ namespace Intersect.Server.Entities
                     }
                 }
 
-                if (en.GetType() == typeof(Projectile))
+                if (en is Projectile projectile)
                 {
-                    if (((Projectile)en).Owner != this && !TargetHasStealth((Projectile)en))
+                    if (projectile.Owner != this && !TargetHasStealth(projectile))
                     {
-                        Target = ((Projectile)en).Owner;
+                        Target = projectile.Owner;
                     }
                 }
                 else
                 {
-                    if (en.GetType() == typeof(Npc))
+                    if (en is Npc npc)
                     {
-                        if (((Npc)en).Base == Base)
+                        if (npc.Base == Base)
                         {
                             if (Base.AttackAllies == false)
                             {
@@ -237,7 +248,7 @@ namespace Intersect.Server.Entities
                         }
                     }
 
-                    if (en.GetType() == typeof(Player))
+                    if (en is Player)
                     {
                         //TODO Make sure that the npc can target the player
                         if (this != en && !TargetHasStealth(en))
@@ -307,7 +318,7 @@ namespace Intersect.Server.Entities
                 return false;
             }
 
-            if (entity.GetType() == typeof(EventPageInstance))
+            if (entity is EventPageInstance)
             {
                 return false;
             }
@@ -326,20 +337,19 @@ namespace Intersect.Server.Entities
                 return false;
             }
 
-            if (entity.GetType() == typeof(Resource))
+            if (entity is Resource)
             {
                 if (!entity.Passable)
                 {
                     return false;
                 }
             }
-            else if (entity.GetType() == typeof(Npc))
+            else if (entity is Npc)
             {
                 return CanNpcCombat(entity, spell != null && spell.Combat.Friendly) || entity == this;
             }
-            else if (entity.GetType() == typeof(Player))
+            else if (entity is Player player)
             {
-                var player = (Player) entity;
                 var friendly = spell != null && spell.Combat.Friendly;
                 if (friendly && IsAllyOf(player))
                 {
@@ -384,13 +394,13 @@ namespace Intersect.Server.Entities
 
             //We were forcing at LEAST 1hp base damage.. but then you can't have guards that won't hurt the player.
             //https://www.ascensiongamedev.com/community/bug_tracker/intersect/npc-set-at-0-attack-damage-still-damages-player-by-1-initially-r915/
-            if (AttackTimer < Globals.Timing.Milliseconds)
+            if (AttackTimer < Timing.Global.Milliseconds)
             {
                 if (Base.AttackAnimation != null)
                 {
                     PacketSender.SendAnimationToProximity(
                         Base.AttackAnimationId, -1, Guid.Empty, target.MapId, (byte) target.X, (byte) target.Y,
-                        (sbyte) Dir
+                        (sbyte) Dir, target.MapInstanceId
                     );
                 }
 
@@ -408,21 +418,21 @@ namespace Intersect.Server.Entities
             //Check for NpcVsNpc Combat, both must be enabled and the attacker must have it as an enemy or attack all types of npc.
             if (!friendly)
             {
-                if (enemy != null && enemy.GetType() == typeof(Npc) && Base != null)
+                if (enemy != null && enemy is Npc enemyNpc && Base != null)
                 {
-                    if (((Npc) enemy).Base.NpcVsNpcEnabled == false)
+                    if (enemyNpc.Base.NpcVsNpcEnabled == false)
                     {
                         return false;
                     }
 
-                    if (Base.AttackAllies && ((Npc) enemy).Base == Base)
+                    if (Base.AttackAllies && enemyNpc.Base == Base)
                     {
                         return true;
                     }
 
                     for (var i = 0; i < Base.AggroList.Count; i++)
                     {
-                        if (NpcBase.Get(Base.AggroList[i]) == ((Npc) enemy).Base)
+                        if (NpcBase.Get(Base.AggroList[i]) == enemyNpc.Base)
                         {
                             return true;
                         }
@@ -431,25 +441,18 @@ namespace Intersect.Server.Entities
                     return false;
                 }
 
-                if (enemy != null && enemy.GetType() == typeof(Player))
+                if (enemy is Player)
                 {
                     return true;
                 }
             }
-            else
+            else if (enemy is Npc enemyNpc && Base != null && enemyNpc.Base == Base && Base.AttackAllies == false)
             {
-                if (enemy != null &&
-                    enemy.GetType() == typeof(Npc) &&
-                    Base != null &&
-                    ((Npc) enemy).Base == Base &&
-                    Base.AttackAllies == false)
-                {
-                    return true;
-                }
-                else if (enemy != null && enemy.GetType() == typeof(Player))
-                {
-                    return false;
-                }
+                return true;
+            }
+            else if (enemy is Player)
+            {
+                return false;
             }
 
             return false;
@@ -512,6 +515,12 @@ namespace Intersect.Server.Entities
         public override int CanMove(int moveDir)
         {
             var canMove = base.CanMove(moveDir);
+
+            // If configured & blocked by an entity, ignore the entity and proceed to move
+            if (Options.Instance.NpcOpts.IntangibleDuringReset && canMove > -1 )
+            {
+                canMove = mResetting ? -1 : canMove;
+            }
             if ((canMove == -1 || canMove == -4) && IsFleeing() && Options.Instance.NpcOpts.AllowResetRadius)
             {
                 var yOffset = 0;
@@ -586,12 +595,12 @@ namespace Intersect.Server.Entities
             }
 
             //Check if NPC is casting a spell
-            if (CastTime > Globals.Timing.Milliseconds)
+            if (IsCasting)
             {
                 return; //can't move while casting
             }
 
-            if (CastFreq >= Globals.Timing.Milliseconds)
+            if (CastFreq >= Timing.Global.Milliseconds)
             {
                 return;
             }
@@ -621,6 +630,12 @@ namespace Intersect.Server.Entities
                 Log.Warn($"Combat data missing for {spellBase.Id}.");
             }
 
+            // Check if we are even allowed to cast this spell.
+            if (!CanCastSpell(spellBase, target, true, out var _))
+            {
+                return;
+            }
+
             var range = spellBase.Combat?.CastRange ?? 0;
             var targetType = spellBase.Combat?.TargetType ?? SpellTargetTypes.Single;
             var projectileBase = spellBase.Combat?.Projectile;
@@ -634,70 +649,20 @@ namespace Intersect.Server.Entities
                 var dirToEnemy = DirToEnemy(target);
                 if (dirToEnemy != Dir)
                 {
-                    if (LastRandomMove >= Globals.Timing.Milliseconds)
+                    if (LastRandomMove >= Timing.Global.Milliseconds)
                     {
                         return;
                     }
 
                     //Face the target -- next frame fire -- then go on with life
                     ChangeDir(dirToEnemy); // Gotta get dir to enemy
-                    LastRandomMove = Globals.Timing.Milliseconds + Randomization.Next(1000, 3000);
+                    LastRandomMove = Timing.Global.Milliseconds + Randomization.Next(1000, 3000);
 
                     return;
                 }
             }
 
-            if (spellBase.VitalCost == null)
-            {
-                return;
-            }
-
-            if (spellBase.VitalCost[(int) Vitals.Mana] > GetVital(Vitals.Mana))
-            {
-                return;
-            }
-
-            if (spellBase.VitalCost[(int) Vitals.Health] > GetVital(Vitals.Health))
-            {
-                return;
-            }
-
-            var spell = Spells[spellIndex];
-            if (spell == null)
-            {
-                return;
-            }
-
-            if (SpellCooldowns.ContainsKey(spell.SpellId) && SpellCooldowns[spell.SpellId] >= Globals.Timing.MillisecondsUTC)
-            {
-                return;
-            }
-
-            if (!InRangeOf(target, range) && targetType == SpellTargetTypes.Single)
-            {
-                // ReSharper disable once SwitchStatementMissingSomeCases
-                return;
-            }
-
-            CastTime = Globals.Timing.Milliseconds + spellBase.CastDuration;
-
-            if (spellBase.VitalCost[(int) Vitals.Mana] > 0)
-            {
-                SubVital(Vitals.Mana, spellBase.VitalCost[(int) Vitals.Mana]);
-            }
-            else
-            {
-                AddVital(Vitals.Mana, -spellBase.VitalCost[(int) Vitals.Mana]);
-            }
-
-            if (spellBase.VitalCost[(int) Vitals.Health] > 0)
-            {
-                SubVital(Vitals.Health, spellBase.VitalCost[(int) Vitals.Health]);
-            }
-            else
-            {
-                AddVital(Vitals.Health, -spellBase.VitalCost[(int) Vitals.Health]);
-            }
+            CastTime = Timing.Global.Milliseconds + spellBase.CastDuration;
 
             if ((spellBase.Combat?.Friendly ?? false) && spellBase.SpellType != SpellTypes.WarpTo)
             {
@@ -711,27 +676,27 @@ namespace Intersect.Server.Entities
             switch (Base.SpellFrequency)
             {
                 case 0:
-                    CastFreq = Globals.Timing.Milliseconds + 30000;
+                    CastFreq = Timing.Global.Milliseconds + 30000;
 
                     break;
 
                 case 1:
-                    CastFreq = Globals.Timing.Milliseconds + 15000;
+                    CastFreq = Timing.Global.Milliseconds + 15000;
 
                     break;
 
                 case 2:
-                    CastFreq = Globals.Timing.Milliseconds + 8000;
+                    CastFreq = Timing.Global.Milliseconds + 8000;
 
                     break;
 
                 case 3:
-                    CastFreq = Globals.Timing.Milliseconds + 4000;
+                    CastFreq = Timing.Global.Milliseconds + 4000;
 
                     break;
 
                 case 4:
-                    CastFreq = Globals.Timing.Milliseconds + 2000;
+                    CastFreq = Timing.Global.Milliseconds + 2000;
 
                     break;
             }
@@ -740,7 +705,7 @@ namespace Intersect.Server.Entities
 
             if (spellBase.CastAnimationId != Guid.Empty)
             {
-                PacketSender.SendAnimationToProximity(spellBase.CastAnimationId, 1, Id, MapId, 0, 0, (sbyte) Dir);
+                PacketSender.SendAnimationToProximity(spellBase.CastAnimationId, 1, Id, MapId, 0, 0, (sbyte) Dir, MapInstanceId);
 
                 //Target Type 1 will be global entity
             }
@@ -785,7 +750,7 @@ namespace Intersect.Server.Entities
 
                     var fleeing = IsFleeing();
 
-                    if (MoveTimer < Globals.Timing.Milliseconds)
+                    if (MoveTimer < Timing.Global.Milliseconds)
                     {
                         var targetMap = Guid.Empty;
                         var targetX = 0;
@@ -793,7 +758,7 @@ namespace Intersect.Server.Entities
                         var targetZ = 0;
 
                         //TODO Clear Damage Map if out of combat (target is null and combat timer is to the point that regen has started)
-                        if (tempTarget != null && Timing.Global.Milliseconds > CombatTimer)
+                        if (tempTarget != null && (Options.Instance.NpcOpts.ResetIfCombatTimerExceeded && Timing.Global.Milliseconds > CombatTimer))
                         {
                             if (CheckForResetLocation(true))
                             {
@@ -812,18 +777,10 @@ namespace Intersect.Server.Entities
                             // Have we reached our destination? If so, clear it.
                             if (distance < 1)
                             {
-                                targetMap = Guid.Empty;
-
-                                // Reset our aggro center so we can get "pulled" again.
-                                AggroCenterMap = null;
-                                AggroCenterX = 0;
-                                AggroCenterY = 0;
-                                AggroCenterZ = 0;
-                                mPathFinder?.SetTarget(null);
-                                mResetting = false;
+                                ResetAggroCenter(out targetMap);
                             }
 
-                            ResetNpc(Options.Instance.NpcOpts.ContinuouslyResetVitalsAndStatuses);
+                            Reset(Options.Instance.NpcOpts.ContinuouslyResetVitalsAndStatuses);
                             tempTarget = Target;
 
                             if (distance != mResetDistance)
@@ -833,12 +790,11 @@ namespace Intersect.Server.Entities
                             else 
                             {
                                 // Something is fishy here.. We appear to be stuck in a reset loop?
-                                // Give it a few more attempts and kill the Npc is it keeps going!
+                                // Give it a few more attempts and reset the NPC's center if we're stuck!
                                 mResetCounter++;
                                 if (mResetCounter > mResetMax)
                                 {
-                                    // Kill the Npc, and simply do not drop any loot or give any credit.
-                                    Die(false, null);
+                                    ResetAggroCenter(out targetMap);
                                     mResetCounter = 0;
                                     mResetDistance = 0;
                                 }
@@ -886,7 +842,7 @@ namespace Intersect.Server.Entities
                             if (targetMap != MapId)
                             {
                                 var found = false;
-                                foreach (var map in MapInstance.Get(MapId).SurroundingMaps)
+                                foreach (var map in MapController.Get(MapId).SurroundingMaps)
                                 {
                                     if (map.Id == targetMap)
                                     {
@@ -1112,21 +1068,21 @@ namespace Intersect.Server.Entities
                             return;
                         }
 
-                        if (LastRandomMove >= Globals.Timing.Milliseconds || CastTime > 0)
+                        if (LastRandomMove >= Timing.Global.Milliseconds || IsCasting)
                         {
                             return;
                         }
 
                         if (Base.Movement == (int)NpcMovement.StandStill)
                         {
-                            LastRandomMove = Globals.Timing.Milliseconds + Randomization.Next(1000, 3000);
+                            LastRandomMove = Timing.Global.Milliseconds + Randomization.Next(1000, 3000);
 
                             return;
                         }
                         else if (Base.Movement == (int)NpcMovement.TurnRandomly)
                         {
-                            ChangeDir((byte)Randomization.Next(0, 4));
-                            LastRandomMove = Globals.Timing.Milliseconds + Randomization.Next(1000, 3000);
+                            ChangeDir((byte)Randomization.Next(0, Options.Instance.Sprites.Directions));
+                            LastRandomMove = Timing.Global.Milliseconds + Randomization.Next(1000, 3000);
 
                             return;
                         }
@@ -1134,7 +1090,7 @@ namespace Intersect.Server.Entities
                         var i = Randomization.Next(0, 1);
                         if (i == 0)
                         {
-                            i = Randomization.Next(0, 4);
+                            i = Randomization.Next(0, Options.Instance.Sprites.Directions);
                             if (CanMove(i) == -1)
                             {
                                 //check if NPC is snared or stunned
@@ -1152,11 +1108,11 @@ namespace Intersect.Server.Entities
                             }
                         }
 
-                        LastRandomMove = Globals.Timing.Milliseconds + Randomization.Next(1000, 3000);
+                        LastRandomMove = Timing.Global.Milliseconds + Randomization.Next(1000, 3000);
 
                         if (fleeing)
                         {
-                            LastRandomMove = Globals.Timing.Milliseconds + (long) GetMovementTime();
+                            LastRandomMove = Timing.Global.Milliseconds + (long) GetMovementTime();
                         }
                     }
 
@@ -1165,12 +1121,18 @@ namespace Intersect.Server.Entities
                     {
                         if (curMapLink == Guid.Empty)
                         {
-                            MapInstance.Get(curMapLink).RemoveEntity(this);
+                            if (MapController.TryGetInstanceFromMap(curMapLink, MapInstanceId, out var instance))
+                            {
+                                instance.RemoveEntity(this);
+                            }
                         }
 
                         if (MapId != Guid.Empty)
                         {
-                            MapInstance.Get(MapId).AddEntity(this);
+                            if (MapController.TryGetInstanceFromMap(MapId, MapInstanceId, out var instance))
+                            {
+                                instance.AddEntity(this);
+                            }
                         }
                     }
                 }
@@ -1184,13 +1146,30 @@ namespace Intersect.Server.Entities
             }
         }
 
+        /// <summary>
+        /// Resets the NPCs position to be "pulled" from
+        /// </summary>
+        /// <param name="targetMap">For referencing the map that the enemy's target WAS on before a reset.</param>
+        private void ResetAggroCenter(out Guid targetMap)
+        {
+            targetMap = Guid.Empty;
+
+            // Reset our aggro center so we can get "pulled" again.
+            AggroCenterMap = null;
+            AggroCenterX = 0;
+            AggroCenterY = 0;
+            AggroCenterZ = 0;
+            mPathFinder?.SetTarget(null);
+            mResetting = false;
+        }
+
         private bool CheckForResetLocation(bool forceDistance = false)
         {
             // Check if we've moved out of our range we're allowed to move from after being "aggro'd" by something.
             // If so, remove target and move back to the origin point.
-            if (Options.Npc.AllowResetRadius && AggroCenterMap != null && (GetDistanceTo(AggroCenterMap, AggroCenterX, AggroCenterY) > Math.Max(Options.Npc.ResetRadius, Base.ResetRadius) || forceDistance))
+            if (Options.Npc.AllowResetRadius && AggroCenterMap != null && (GetDistanceTo(AggroCenterMap, AggroCenterX, AggroCenterY) > Math.Max(Options.Npc.ResetRadius, Math.Min(Base.ResetRadius, Math.Max(Options.MapWidth, Options.MapHeight))) || forceDistance))
             {
-                ResetNpc(Options.Npc.ResetVitalsAndStatusses);
+                Reset(Options.Npc.ResetVitalsAndStatusses);
 
                 mResetCounter = 0;
                 mResetDistance = 0;
@@ -1203,7 +1182,7 @@ namespace Intersect.Server.Entities
             return false;
         }
 
-        private void ResetNpc(bool resetVitals = true, bool clearLocation = false)
+        private void Reset(bool resetVitals, bool clearLocation = false)
         {
             // Remove our target.
             RemoveTarget();
@@ -1235,19 +1214,31 @@ namespace Intersect.Server.Entities
             }
         }
 
+        // Completely resets an Npc to full health and its spawnpoint if it's current chasing something.
+        public override void Reset()
+        {
+            if (AggroCenterMap != null)
+            {
+                Warp(AggroCenterMap.Id, AggroCenterX, AggroCenterY);
+            }
+            
+            Reset(true, true);
+        }
+
         public override void NotifySwarm(Entity attacker)
         {
-            var mapEntities = MapInstance.Get(MapId).GetEntities(true);
-            foreach (var en in mapEntities)
+            if (MapController.TryGetInstanceFromMap(MapId, MapInstanceId, out var instance))
             {
-                if (en.GetType() == typeof(Npc))
+                foreach (var en in instance.GetEntities(true))
                 {
-                    var npc = (Npc) en;
-                    if (npc.Target == null & npc.Base.Swarm && npc.Base == Base)
+                    if (en is Npc npc)
                     {
-                        if (npc.InRangeOf(attacker, npc.Base.SightRange))
+                        if (npc.Target == null & npc.Base.Swarm && npc.Base == Base)
                         {
-                            npc.AssignTarget(attacker);
+                            if (npc.InRangeOf(attacker, npc.Base.SightRange))
+                            {
+                                npc.AssignTarget(attacker);
+                            }
                         }
                     }
                 }
@@ -1346,12 +1337,10 @@ namespace Intersect.Server.Entities
                 }
             }
 
-            var maps = MapInstance.Get(MapId).GetSurroundingMaps(true);
             var possibleTargets = new List<Entity>();
             var closestRange = Range + 1; //If the range is out of range we didn't find anything.
             var closestIndex = -1;
             var highestDmgIndex = -1;
-
            
             if (DamageMap.Count > 0)
             {
@@ -1371,6 +1360,12 @@ namespace Intersect.Server.Entities
                         continue;   
                     }
 
+                    // Is this entity on our instance anymore? If not skip it, but don't remove it in case they come back and need item drop determined
+                    if (en.Key.MapInstanceId != MapInstanceId)
+                    {
+                        continue;
+                    }
+
                     // Are we at a valid distance? (9999 means not on this map or somehow null!)
                     if (GetDistanceTo(en.Key) != 9999)
                     {
@@ -1387,19 +1382,18 @@ namespace Intersect.Server.Entities
                 }
             }
 
-
             // Scan for nearby targets
-            foreach (var map in maps)
+            foreach (var instance in MapController.GetSurroundingMapInstances(MapId, MapInstanceId, true))
             {
-                foreach (var entity in map.GetCachedEntities())
+                foreach (var entity in instance.GetCachedEntities())
                 {
                     if (entity != null && !entity.IsDead() && entity != this && entity.Id != avoidId)
                     {
                         //TODO Check if NPC is allowed to attack player with new conditions
-                        if (entity.GetType() == typeof(Player))
+                        if (entity is Player player)
                         {
                             // Are we aggressive towards this player or have they hit us?
-                            if (ShouldAttackPlayerOnSight((Player)entity) || DamageMap.ContainsKey(entity))
+                            if (ShouldAttackPlayerOnSight(player) || (DamageMap.ContainsKey(entity) && entity.MapInstanceId == MapInstanceId))
                             {
                                 var dist = GetDistanceTo(entity);
                                 if (dist <= Range && dist < closestRange)
@@ -1410,9 +1404,9 @@ namespace Intersect.Server.Entities
                                 }
                             }
                         }
-                        else if (entity.GetType() == typeof(Npc))
+                        else if (entity is Npc npc)
                         {
-                            if (Base.Aggressive && Base.AggroList.Contains(((Npc)entity).Base.Id))
+                            if (Base.Aggressive && Base.AggroList.Contains(npc.Base.Id))
                             {
                                 var dist = GetDistanceTo(entity);
                                 if (dist <= Range && dist < closestRange)
@@ -1519,11 +1513,14 @@ namespace Intersect.Server.Entities
             byte newDir,
             bool adminWarp = false,
             byte zOverride = 0,
-            bool mapSave = false
+            bool mapSave = false,
+            bool fromWarpEvent = false,
+            MapInstanceType? mapInstanceType = null,
+            bool fromLogin = false,
+            bool forceInstanceChange = false
         )
         {
-            var map = MapInstance.Get(newMapId);
-            if (map == null)
+            if (!MapController.TryGetInstanceFromMap(newMapId, MapInstanceId, out var map))
             {
                 return;
             }
@@ -1534,8 +1531,7 @@ namespace Intersect.Server.Entities
             Dir = newDir;
             if (newMapId != MapId)
             {
-                var oldMap = MapInstance.Get(MapId);
-                if (oldMap != null)
+                if (MapController.TryGetInstanceFromMap(MapId, MapInstanceId, out var oldMap))
                 {
                     oldMap.RemoveEntity(this);
                 }

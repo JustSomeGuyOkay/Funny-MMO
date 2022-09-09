@@ -1,5 +1,6 @@
 ﻿using Intersect.Client.Core;
 using Intersect.Client.Framework.File_Management;
+using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Gwen.Control;
 
 using Intersect.Utilities;
@@ -9,7 +10,7 @@ namespace Intersect.Client.Interface.Game
     /// <summary>
     /// The GUI class for the Announcement Window that can pop up on-screen during gameplay.
     /// </summary>
-    public class AnnouncementWindow
+    public partial class AnnouncementWindow
     {
 
         //Controls

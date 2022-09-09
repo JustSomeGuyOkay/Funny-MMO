@@ -33,6 +33,8 @@ namespace Intersect.Editor.Forms.Editors.Quest
         {
             ApplyHooks();
             InitializeComponent();
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             InitLocalization();
 
             lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
@@ -94,9 +96,9 @@ namespace Intersect.Editor.Forms.Editors.Quest
             lblUnstartedCategory.Text = Strings.QuestEditor.unstartedcategory;
             lblInProgressCategory.Text = Strings.QuestEditor.inprogressgategory;
             lblCompletedCategory.Text = Strings.QuestEditor.completedcategory;
-            cmbUnstartedCategory.Items.Add(Strings.General.none);
-            cmbInProgressCategory.Items.Add(Strings.General.none);
-            cmbCompletedCategory.Items.Add(Strings.General.none);
+            cmbUnstartedCategory.Items.Add(Strings.General.None);
+            cmbInProgressCategory.Items.Add(Strings.General.None);
+            cmbCompletedCategory.Items.Add(Strings.General.None);
 
             foreach (var questCategory in Options.Instance.Quest.Categories)
             {
@@ -350,7 +352,8 @@ namespace Intersect.Editor.Forms.Editors.Quest
         private void btnAddTask_Click(object sender, EventArgs e)
         {
             var questTask = new QuestBase.QuestTask(Guid.NewGuid());
-            questTask.EditingEvent = new EventBase(Guid.Empty, Guid.Empty, 0, 0, false);
+            questTask.EditingEvent = new EventBase(questTask.Id, Guid.Empty, 0, 0, false);
+            questTask.EditingEvent.CommonEvent = false;
             questTask.EditingEvent.Name = Strings.TaskEditor.completionevent.ToString(mEditorItem.Name);
             mEditorItem.AddEvents.Add(questTask.Id, questTask.EditingEvent);
             if (OpenTaskEditor(questTask))
@@ -482,7 +485,7 @@ namespace Intersect.Editor.Forms.Editors.Quest
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.QuestEditor.deleteprompt, Strings.QuestEditor.deletetitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -547,7 +550,7 @@ namespace Intersect.Editor.Forms.Editors.Quest
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.QuestEditor.undoprompt, Strings.QuestEditor.undotitle, DarkDialogButton.YesNo,
-                        Properties.Resources.Icon
+                        Icon
                     ) ==
                     DialogResult.Yes)
                 {
@@ -715,7 +718,7 @@ namespace Intersect.Editor.Forms.Editors.Quest
 
         private void nudOrderValue_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.OrderValue = (int)nudOrderValue.Value; 
+            mEditorItem.OrderValue = (int)nudOrderValue.Value;
         }
     }
 
