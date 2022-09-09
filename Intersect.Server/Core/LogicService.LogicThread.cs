@@ -373,9 +373,9 @@ namespace Intersect.Server.Core
                             MapInstanceUpdateQueue.Enqueue(mapInstance);
                         }
 
-                        if (ActiveMaps.Contains(map.Id))
+                        if (ActiveMapInstances.Keys.Contains(mapInstance.Id))
                         {
-                            MapUpdateQueue.Enqueue(map);
+                            MapInstanceUpdateQueue.Enqueue(mapInstance);
                         }
                     }
                 }

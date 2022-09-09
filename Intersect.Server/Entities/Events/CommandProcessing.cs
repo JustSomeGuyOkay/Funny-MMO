@@ -1153,7 +1153,7 @@ namespace Intersect.Server.Entities.Events
         private static void ProcessCommand(
             DropItemCommand command,
             Player player,
-            Event instance,
+            Event eventInstance,
             CommandInstance stackInfo,
             Stack<CommandInstance> callStack
         )
@@ -1179,7 +1179,7 @@ namespace Intersect.Server.Entities.Events
                 {
                     foreach (var evt in player.EventLookup)
                     {
-                        if (evt.Value.MapId != instance.MapId)
+                        if (evt.Value.MapId != eventInstance.MapId)
                         {
                             continue;
                         }
@@ -1240,8 +1240,13 @@ namespace Intersect.Server.Entities.Events
             {
                 return;
             }
-            var map = MapInstance.Get(mapId);
-            map?.SpawnItem(tileX, tileY, new Item(itemId, itemQuantity), 1, player.Id);
+
+            var tile = new TileHelper(mapId, tileX, tileY);
+            var item = new Item(itemId, itemQuantity);
+            if (tile.TryFix() && MapController.TryGetInstanceFromMap(mapId, player.MapInstanceId, out var mapinstance))
+            {
+                mapinstance.SpawnItem(tileX, tileY, item, item.Quantity, player.Id);
+            }
         }
 
         //Open Bank Command

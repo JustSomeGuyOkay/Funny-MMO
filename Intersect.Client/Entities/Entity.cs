@@ -1703,7 +1703,7 @@ namespace Intersect.Client.Entities
             else if (IsMoving)
             {
                 SpriteAnimation = SpriteAnimations.Normal;
-                LastActionTime = Globals.System.GetTimeMs();
+                LastActionTime = Timing.Global.Milliseconds;
             }
 
             if (SpriteAnimation == SpriteAnimations.Normal)
