@@ -87,15 +87,13 @@ namespace Intersect.Server.Database.GameData
 
         public DbSet<GuildVariableBase> GuildVariables { get; set; }
 
+        public DbSet<UserVariableBase> UserVariables { get; set; }
+
         //Tilesets
         public DbSet<TilesetBase> Tilesets { get; set; }
 
         //Time
         public DbSet<TimeBase> Time { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-        }
 
         public override void MigrationsProcessed(string[] migrations)
         {

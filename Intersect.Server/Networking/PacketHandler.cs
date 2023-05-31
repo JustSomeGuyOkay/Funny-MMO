@@ -1,5 +1,4 @@
 using Intersect.Enums;
-using Intersect.ErrorHandling;
 using Intersect.GameObjects;
 using Intersect.GameObjects.Crafting;
 using Intersect.GameObjects.Events;
@@ -25,13 +24,16 @@ using Intersect.Server.Maps;
 using Intersect.Server.Networking.Lidgren;
 using Intersect.Server.Notifications;
 using Intersect.Utilities;
-
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Intersect.Network.Packets.Editor;
+using LoginPacket = Intersect.Network.Packets.Client.LoginPacket;
+using NeedMapPacket = Intersect.Network.Packets.Client.NeedMapPacket;
+using PingPacket = Intersect.Network.Packets.Client.PingPacket;
 
 namespace Intersect.Server.Networking
 {
@@ -604,42 +606,51 @@ namespace Intersect.Server.Networking
                 }
             }
 
-            //Otherwise proceed with login normally...
-            if (Options.MaxCharacters > 1)
-            {
-                PacketSender.SendPlayerCharacters(client);
-            }
-            else if (client.Characters?.Count > 0)
-            {
-                client.LoadCharacter(client.Characters.First());
-                client.Entity.SetOnline();
-
-                PacketSender.SendJoinGame(client);
-            }
-            else
+            // Send newly accounts with 0 characters thru the character creation menu.
+            if (client.Characters?.Count < 1)
             {
                 PacketSender.SendGameObjects(client, GameObjectType.Class);
                 PacketSender.SendCreateCharacter(client);
+                return;
+            }
+
+            // Show character select menu or login right away by following configuration preferences.
+            if (Options.MaxCharacters > 1 || !Options.Instance.PlayerOpts.SkipCharacterSelect)
+            {
+                PacketSender.SendPlayerCharacters(client);
+            }
+            else
+            {
+                client.LoadCharacter(client.Characters?.First());
+                client.Entity.SetOnline();
+                PacketSender.SendJoinGame(client);
             }
         }
 
         //LogoutPacket
         public void HandlePacket(Client client, LogoutPacket packet)
         {
-            if (client != null)
+            if (client == null)
             {
-                UserActivityHistory.LogActivity(client?.User?.Id ?? Guid.Empty, Guid.Empty, client?.GetIp(), UserActivityHistory.PeerType.Client, packet.ReturningToCharSelect ? UserActivityHistory.UserAction.SwitchPlayer : UserActivityHistory.UserAction.DisconnectLogout, $"{client?.Name},{client?.Entity?.Name}");
+                return;
+            }
 
-                if (Options.MaxCharacters > 1 && packet.ReturningToCharSelect)
-                {
-                    client.Entity?.TryLogout(false, true);
-                    client.Entity = null;
-                    PacketSender.SendPlayerCharacters(client);
-                }
-                else
-                {
-                    client?.Logout();
-                }
+            UserActivityHistory.LogActivity(client.User?.Id ?? Guid.Empty, Guid.Empty, client.GetIp(),
+                UserActivityHistory.PeerType.Client,
+                packet.ReturningToCharSelect
+                    ? UserActivityHistory.UserAction.SwitchPlayer
+                    : UserActivityHistory.UserAction.DisconnectLogout, $"{client.Name},{client.Entity?.Name}");
+
+            if (packet.ReturningToCharSelect &&
+                (Options.MaxCharacters > 1 || !Options.Instance.PlayerOpts.SkipCharacterSelect))
+            {
+                client.Entity?.TryLogout(false, true);
+                client.Entity = null;
+                PacketSender.SendPlayerCharacters(client);
+            }
+            else
+            {
+                client.Logout();
             }
         }
 
@@ -670,9 +681,9 @@ namespace Intersect.Server.Networking
             //check if player is stunned or snared, if so don't let them move.
             foreach (var status in player.CachedStatuses)
             {
-                if (status.Type == StatusTypes.Stun ||
-                    status.Type == StatusTypes.Snare ||
-                    status.Type == StatusTypes.Sleep)
+                if (status.Type == SpellEffect.Stun ||
+                    status.Type == SpellEffect.Snare ||
+                    status.Type == SpellEffect.Sleep)
                 {
                     return;
                 }
@@ -829,7 +840,7 @@ namespace Intersect.Server.Networking
                     Strings.Chat.local.ToString(player.Name, msg), ChatMessageType.Local, player.MapId, player.MapInstanceId, chatColor,
                     player.Name
                 );
-                PacketSender.SendChatBubble(player.Id, player.MapInstanceId, (int) EntityTypes.GlobalEntity, msg, player.MapId);
+                PacketSender.SendChatBubble(player.Id, player.MapInstanceId, (int) EntityType.GlobalEntity, msg, player.MapId);
                 ChatHistory.LogMessage(player, msg.Trim(), ChatMessageType.Local, Guid.Empty);
             }
             else if (cmd == Strings.Chat.allcmd || cmd == Strings.Chat.globalcmd)
@@ -998,20 +1009,27 @@ namespace Intersect.Server.Networking
                     PacketSender.SendChatMsg(player, Strings.Player.offline, ChatMessageType.PM, CustomColors.Alerts.Error);
                 }
             }
+            else if (cmd == "/deletemap")
+            {
+                Instance.HandlePacket(
+                    client,
+                    new MapListUpdatePacket(MapListUpdate.Delete, 1, client.Entity.MapId, 0, Guid.Empty, string.Empty)
+                );
+            }
             else
             {
                 //Search for command activated events and run them
                 foreach (var evt in EventBase.Lookup)
                 {
-                    if ((EventBase) evt.Value != null)
+                    var eventDescriptor = evt.Value as EventBase;
+                    if (eventDescriptor == default)
                     {
-                        if (client.Entity.StartCommonEvent(
-                                (EventBase) evt.Value, CommonEventTrigger.SlashCommand, cmd.TrimStart('/'), msg
-                            ) ==
-                            true)
-                        {
-                            return; //Found our /command, exit now :)
-                        }
+                        continue;
+                    }
+
+                    if (client.Entity.UnsafeStartCommonEvent(eventDescriptor, CommonEventTrigger.SlashCommand, cmd.TrimStart('/'), msg))
+                    {
+                        return; //Found our /command, exit now :)
                     }
                 }
 
@@ -1033,14 +1051,14 @@ namespace Intersect.Server.Networking
             var statuses = client.Entity.Statuses.Values.ToArray();
             foreach (var status in statuses)
             {
-                if (status.Type == StatusTypes.Stun)
+                if (status.Type == SpellEffect.Stun)
                 {
                     PacketSender.SendChatMsg(player, Strings.Combat.stunblocking, ChatMessageType.Combat);
 
                     return;
                 }
 
-                if (status.Type == StatusTypes.Sleep)
+                if (status.Type == SpellEffect.Sleep)
                 {
                     PacketSender.SendChatMsg(player, Strings.Combat.sleepblocking, ChatMessageType.Combat);
 
@@ -1082,7 +1100,7 @@ namespace Intersect.Server.Networking
                 return;
             }
 
-            if (player.AttackTimer > Timing.Global.Milliseconds)
+            if (player.IsAttacking)
             {
                 return;
             }
@@ -1103,7 +1121,7 @@ namespace Intersect.Server.Networking
             //check if player is blinded or stunned or in stealth mode
             foreach (var status in player.CachedStatuses)
             {
-                if (status.Type == StatusTypes.Stun)
+                if (status.Type == SpellEffect.Stun)
                 {
                     if (Options.Combat.EnableCombatChatMessages)
                     {
@@ -1113,7 +1131,7 @@ namespace Intersect.Server.Networking
                     return;
                 }
 
-                if (status.Type == StatusTypes.Sleep)
+                if (status.Type == SpellEffect.Sleep)
                 {
                     if (Options.Combat.EnableCombatChatMessages)
                     {
@@ -1123,7 +1141,7 @@ namespace Intersect.Server.Networking
                     return;
                 }
 
-                if (status.Type == StatusTypes.Blind)
+                if (status.Type == SpellEffect.Blind)
                 {
                     PacketSender.SendActionMsg(player, Strings.Combat.miss, CustomColors.Combat.Missed);
 
@@ -1131,7 +1149,7 @@ namespace Intersect.Server.Networking
                 }
 
                 //Remove stealth status.
-                if (status.Type == StatusTypes.Stealth)
+                if (status.Type == SpellEffect.Stealth)
                 {
                     status.RemoveStatus();
                 }
@@ -1140,82 +1158,88 @@ namespace Intersect.Server.Networking
             var attackingTile = new TileHelper(player.MapId, player.X, player.Y);
             switch (player.Dir)
             {
-                case 0:
+                case Direction.Up:
                     attackingTile.Translate(0, -1);
-
                     break;
 
-                case 1:
+                case Direction.Down:
                     attackingTile.Translate(0, 1);
-
                     break;
 
-                case 2:
+                case Direction.Left:
                     attackingTile.Translate(-1, 0);
-
                     break;
 
-                case 3:
+                case Direction.Right:
                     attackingTile.Translate(1, 0);
+                    break;
 
+                case Direction.UpLeft:
+                    attackingTile.Translate(-1, -1);
+                    break;
+
+                case Direction.UpRight:
+                    attackingTile.Translate(1, -1);
+                    break;
+
+                case Direction.DownLeft:
+                    attackingTile.Translate(-1, 1);
+                    break;
+
+                case Direction.DownRight:
+                    attackingTile.Translate(1, 1);
                     break;
             }
 
             PacketSender.SendEntityAttack(player, player.CalculateAttackTime());
 
-            player.ClientAttackTimer = clientTime + (long) player.CalculateAttackTime();
+            player.ClientAttackTimer = clientTime + player.CalculateAttackTime();
 
             //Fire projectile instead if weapon has it
-            if (Options.WeaponIndex > -1)
+
+            if (player.TryGetEquippedItem(Options.WeaponIndex, out var equippedWeapon))
             {
-                if (player.Equipment[Options.WeaponIndex] >= 0 &&
-                    ItemBase.Get(player.Items[player.Equipment[Options.WeaponIndex]].ItemId) != null)
+                var weaponItem = equippedWeapon.Descriptor;
+
+                //Check for animation
+                var attackAnim = weaponItem.AttackAnimation;
+
+                if (attackAnim != null && attackingTile.TryFix())
                 {
-                    var weaponItem = ItemBase.Get(player.Items[player.Equipment[Options.WeaponIndex]].ItemId);
+                    PacketSender.SendAnimationToProximity(
+                        attackAnim.Id, -1, player.Id, attackingTile.GetMapId(), attackingTile.GetX(),
+                        attackingTile.GetY(), player.Dir, player.MapInstanceId
+                    );
+                }
 
-                    //Check for animation
-                    var attackAnim = ItemBase.Get(player.Items[player.Equipment[Options.WeaponIndex]].ItemId)
-                        .AttackAnimation;
+                var projectileBase = ProjectileBase.Get(weaponItem?.ProjectileId ?? Guid.Empty);
 
-                    if (attackAnim != null && attackingTile.TryFix())
+                if (projectileBase != null)
+                {
+                    if (projectileBase.AmmoItemId != Guid.Empty)
                     {
-                        PacketSender.SendAnimationToProximity(
-                            attackAnim.Id, -1, player.Id, attackingTile.GetMapId(), attackingTile.GetX(),
-                            attackingTile.GetY(), (sbyte) player.Dir, player.MapInstanceId
+                        var itemSlot = player.FindInventoryItemSlot(
+                            projectileBase.AmmoItemId, projectileBase.AmmoRequired
                         );
-                    }
 
-                    var weaponInvSlot = player.Equipment[Options.WeaponIndex];
-                    var invItem = player.Items[weaponInvSlot];
-                    var weapon = ItemBase.Get(invItem?.ItemId ?? Guid.Empty);
-                    var projectileBase = ProjectileBase.Get(weapon?.ProjectileId ?? Guid.Empty);
-
-                    if (projectileBase != null)
-                    {
-                        if (projectileBase.AmmoItemId != Guid.Empty)
+                        if (itemSlot == null)
                         {
-                            var itemSlot = player.FindInventoryItemSlot(
-                                projectileBase.AmmoItemId, projectileBase.AmmoRequired
+                            PacketSender.SendChatMsg(
+                                player,
+                                Strings.Items.notenough.ToString(ItemBase.GetName(projectileBase.AmmoItemId)),
+                                ChatMessageType.Inventory,
+                                CustomColors.Combat.NoAmmo
                             );
 
-                            if (itemSlot == null)
-                            {
-                                PacketSender.SendChatMsg(
-                                    player,
-                                    Strings.Items.notenough.ToString(ItemBase.GetName(projectileBase.AmmoItemId)),
-                                    ChatMessageType.Inventory,
-                                    CustomColors.Combat.NoAmmo
-                                );
-
-                                return;
-                            }
+                            return;
+                        }
 #if INTERSECT_DIAGNOSTIC
                                 PacketSender.SendPlayerMsg(client,
                                     Strings.Get("items", "notenough", $"REGISTERED_AMMO ({projectileBase.Ammo}:'{ItemBase.GetName(projectileBase.Ammo)}':{projectileBase.AmmoRequired})"),
                                     ChatMessageType.Inventory, CustomColors.NoAmmo);
 #endif
-                            if (!player.TryTakeItem(projectileBase.AmmoItemId, projectileBase.AmmoRequired))
-                            {
+                        if (!player.TryTakeItem(projectileBase.AmmoItemId, projectileBase.AmmoRequired))
+                        {
 #if INTERSECT_DIAGNOSTIC
                                     PacketSender.SendPlayerMsg(client,
                                         Strings.Get("items", "notenough", "FAILED_TO_DEDUCT_AMMO"),
@@ -1224,8 +1248,8 @@ namespace Intersect.Server.Networking
                                         Strings.Get("items", "notenough", $"FAILED_TO_DEDUCT_AMMO {client.Entity.CountItems(projectileBase.Ammo)}"),
                                         ChatMessageType.Inventory, CustomColors.NoAmmo);
 #endif
-                            }
                         }
+                    }
 #if INTERSECT_DIAGNOSTIC
                             else
                             {
@@ -1234,22 +1258,20 @@ namespace Intersect.Server.Networking
                                     ChatMessageType.Inventory, CustomColors.NoAmmo);
                             }
 #endif
-                        if (MapController.TryGetInstanceFromMap(player.MapId, player.MapInstanceId, out var mapInstance))
-                        {
-                            mapInstance
+                    if (MapController.TryGetInstanceFromMap(player.MapId, player.MapInstanceId, out var mapInstance))
+                    {
+                        mapInstance
                             .SpawnMapProjectile(
                                 player, projectileBase, null, weaponItem, player.MapId,
-                                (byte)player.X, (byte)player.Y, (byte)player.Z,
-                                (byte)player.Dir, null
-                            );
+                                (byte)player.X, (byte)player.Y, (byte)player.Z, player.Dir, null);
 
-                            player.AttackTimer = Timing.Global.Milliseconds +
-                                                 latencyAdjustmentMs +
-                                                 player.CalculateAttackTime();
-                        }
-
-                        return;
+                        player.AttackTimer = Timing.Global.Milliseconds +
+                                             latencyAdjustmentMs +
+                                             player.CalculateAttackTime();
                     }
+
+                    return;
+                }
 #if INTERSECT_DIAGNOSTIC
                         else
                         {
@@ -1259,16 +1281,6 @@ namespace Intersect.Server.Networking
                             return;
                         }
 #endif
-                }
-                else
-                {
-                    unequippedAttack = true;
-#if INTERSECT_DIAGNOSTIC
-                        PacketSender.SendPlayerMsg(client,
-                            Strings.Get("items", "notenough", "NO_WEAPON"),
-                            ChatMessageType.Inventory, CustomColors.NoAmmo);
-#endif
-                }
             }
             else
             {
@@ -1285,7 +1297,7 @@ namespace Intersect.Server.Networking
                     {
                         PacketSender.SendAnimationToProximity(
                             classBase.AttackAnimationId, -1, player.Id, attackingTile.GetMapId(), attackingTile.GetX(),
-                            attackingTile.GetY(), (sbyte) player.Dir, player.MapInstanceId
+                            attackingTile.GetY(), player.Dir, player.MapInstanceId
                         );
                     }
                 }
@@ -1304,7 +1316,7 @@ namespace Intersect.Server.Networking
                 }
             }
 
-            if (player.AttackTimer > Timing.Global.Milliseconds)
+            if (player.IsAttacking)
             {
                 player.AttackTimer = Timing.Global.Milliseconds + latencyAdjustmentMs + player.CalculateAttackTime();
             }
@@ -1314,12 +1326,8 @@ namespace Intersect.Server.Networking
         public void HandlePacket(Client client, DirectionPacket packet)
         {
             var player = client?.Entity;
-            if (player == null)
-            {
-                return;
-            }
 
-            player.ChangeDir(packet.Direction);
+            player?.ChangeDir(packet.Direction);
         }
 
         //EnterGamePacket
@@ -1354,7 +1362,7 @@ namespace Intersect.Server.Networking
         //EventInputVariablePacket
         public void HandlePacket(Client client, EventInputVariablePacket packet)
         {
-            ((Player) client.Entity).RespondToEventInput(
+            client.Entity.RespondToEventInput(
                 packet.EventId, packet.Value, packet.StringValue, packet.Canceled
             );
         }
@@ -1443,16 +1451,9 @@ namespace Intersect.Server.Networking
                         }
                     }
 
-                    //Character selection if more than one.
-                    if (Options.MaxCharacters > 1)
-                    {
-                        PacketSender.SendPlayerCharacters(client);
-                    }
-                    else
-                    {
-                        PacketSender.SendGameObjects(client, GameObjectType.Class);
-                        PacketSender.SendCreateCharacter(client);
-                    }
+                    //Start the character creation process for the newly created account.
+                    PacketSender.SendGameObjects(client, GameObjectType.Class);
+                    PacketSender.SendCreateCharacter(client);
                 }
             }
         }
@@ -1509,10 +1510,10 @@ namespace Intersect.Server.Networking
 
             client.LoadCharacter(newChar);
 
-            newChar.SetVital(Vitals.Health, classBase.BaseVital[(int) Vitals.Health]);
-            newChar.SetVital(Vitals.Mana, classBase.BaseVital[(int) Vitals.Mana]);
+            newChar.SetVital(Vital.Health, classBase.BaseVital[(int) Vital.Health]);
+            newChar.SetVital(Vital.Mana, classBase.BaseVital[(int) Vital.Mana]);
 
-            for (var i = 0; i < (int) Stats.StatCount; i++)
+            for (var i = 0; i < (int) Stat.StatCount; i++)
             {
                 newChar.Stat[i].BaseStat = 0;
             }
@@ -1885,8 +1886,37 @@ namespace Intersect.Server.Networking
                 return;
             }
 
-            player.CraftId = packet.CraftId;
-            player.CraftTimer = Timing.Global.Milliseconds;
+            if (packet.CraftId == default)
+            {
+                player.CraftingState = default;
+            }
+
+            if (!CraftBase.TryGet(packet.CraftId, out var craftDescriptor))
+            {
+                Log.Warn($"Player {player.Id} tried to craft {packet.CraftId} which does not exist.");
+                return;
+            }
+
+            if (player.OpenCraftingTableId == default)
+            {
+                Log.Warn($"Player {player.Id} tried to craft {packet.CraftId} without having opened a table yet.");
+                return;
+            }
+
+            if (player.CraftingState != default)
+            {
+                PacketSender.SendChatMsg(player, Strings.Crafting.AlreadyCrafting, ChatMessageType.Crafting, CustomColors.Alerts.Error);
+                return;
+            }
+
+            player.CraftingState = new CraftingState
+            {
+                Id = packet.CraftId,
+                CraftCount = packet.Count,
+                RemainingCount = packet.Count,
+                DurationPerCraft = craftDescriptor.Time,
+                NextCraftCompletionTime = Timing.Global.Milliseconds + craftDescriptor.Time
+            };
         }
 
         //CloseBankPacket
@@ -2601,7 +2631,7 @@ namespace Intersect.Server.Networking
             // Handle our desired action, assuming we're allowed to of course.
             switch (packet.Action)
             {
-                case GuildMemberUpdateActions.Invite:
+                case GuildMemberUpdateAction.Invite:
                     // Are we allowed to invite players?
                     var inviteRankIndex = Options.Instance.Guild.Ranks.Length - 1;
                     var inviteRank = Options.Instance.Guild.Ranks[inviteRankIndex];
@@ -2642,7 +2672,7 @@ namespace Intersect.Server.Networking
                         PacketSender.SendChatMsg(player, Strings.Guilds.InviteNotOnline, ChatMessageType.Guild, CustomColors.Alerts.Error);
                     }
                     break;
-                case GuildMemberUpdateActions.Remove:
+                case GuildMemberUpdateAction.Remove:
                     if (guild.Members.TryGetValue(packet.Id, out member))
                     {
                         if ((!rank.Permissions.Kick && !isOwner) || member.Rank <= player.GuildRank)
@@ -2664,7 +2694,7 @@ namespace Intersect.Server.Networking
                         PacketSender.SendChatMsg(player, Strings.Guilds.NoSuchPlayer, ChatMessageType.Guild, CustomColors.Alerts.Error);
                     }
                     break;
-                case GuildMemberUpdateActions.Promote:
+                case GuildMemberUpdateAction.Promote:
                     if (guild.Members.TryGetValue(packet.Id, out member))
                     {
                         var promotionRankIndex = Math.Max(0, Math.Min(packet.Rank, Options.Instance.Guild.Ranks.Length - 1));
@@ -2690,7 +2720,7 @@ namespace Intersect.Server.Networking
                         PacketSender.SendChatMsg(player, Strings.Guilds.NoSuchPlayer, ChatMessageType.Guild, CustomColors.Alerts.Error);
                     }
                     break;
-                case GuildMemberUpdateActions.Demote:
+                case GuildMemberUpdateAction.Demote:
                     if (guild.Members.TryGetValue(packet.Id, out member))
                     {
                         var demotionRankIndex = Math.Max(0, Math.Min(packet.Rank, Options.Instance.Guild.Ranks.Length - 1));
@@ -2716,7 +2746,7 @@ namespace Intersect.Server.Networking
                         PacketSender.SendChatMsg(player, Strings.Guilds.NoSuchPlayer, ChatMessageType.Guild, CustomColors.Alerts.Error);
                     }
                     break;
-                case GuildMemberUpdateActions.Transfer:
+                case GuildMemberUpdateAction.Transfer:
                     if (guild.Members.TryGetValue(packet.Id, out member))
                     {
                         if (!isOwner)
@@ -3026,7 +3056,7 @@ namespace Intersect.Server.Networking
 
             foreach (var plyr in players)
             {
-                plyr.Warp(plyr.MapId, (byte) plyr.X, (byte) plyr.Y, (byte) plyr.Dir, false, (byte) plyr.Z, true);
+                plyr.Warp(plyr.MapId, (byte) plyr.X, (byte) plyr.Y, plyr.Dir, false, (byte) plyr.Z, true);
                 PacketSender.SendMap(plyr.Client, packet.MapId);
             }
 
@@ -3239,20 +3269,20 @@ namespace Intersect.Server.Networking
         //MapListUpdatePacket
         public void HandlePacket(Client client, Network.Packets.Editor.MapListUpdatePacket packet)
         {
-            if (!client.IsEditor)
-            {
-                return;
-            }
+            // if (!client.IsEditor)
+            // {
+            //     return;
+            // }
 
             MapListFolder parent = null;
             var mapId = Guid.Empty;
             switch (packet.UpdateType)
             {
-                case MapListUpdates.MoveItem:
+                case MapListUpdate.MoveItem:
                     MapList.List.HandleMove(packet.TargetType, packet.TargetId, packet.ParentType, packet.ParentId);
                     break;
 
-                case MapListUpdates.AddFolder:
+                case MapListUpdate.AddFolder:
                     if (packet.ParentId == Guid.Empty)
                     {
                         MapList.List.AddFolder(Strings.Mapping.newfolder);
@@ -3285,7 +3315,7 @@ namespace Intersect.Server.Networking
 
                     break;
 
-                case MapListUpdates.Rename:
+                case MapListUpdate.Rename:
                     if (packet.TargetType == 0)
                     {
                         parent = MapList.List.FindFolder(packet.TargetId);
@@ -3303,7 +3333,7 @@ namespace Intersect.Server.Networking
 
                     break;
 
-                case MapListUpdates.Delete:
+                case MapListUpdate.Delete:
                     if (packet.TargetType == 0)
                     {
                         MapList.List.DeleteFolder(packet.TargetId);
@@ -3373,26 +3403,25 @@ namespace Intersect.Server.Networking
                             //Up
                             if (gridY - 1 >= 0 && grid.MyGrid[gridX, gridY - 1] != Guid.Empty)
                             {
-                                MapController.Get(grid.MyGrid[gridX, gridY - 1])?.ClearConnections((int) Directions.Down);
+                                MapController.Get(grid.MyGrid[gridX, gridY - 1])?.ClearConnections(Direction.Down);
                             }
 
                             //Down
                             if (gridY + 1 < grid.Height && grid.MyGrid[gridX, gridY + 1] != Guid.Empty)
                             {
-                                MapController.Get(grid.MyGrid[gridX, gridY + 1])?.ClearConnections((int) Directions.Up);
+                                MapController.Get(grid.MyGrid[gridX, gridY + 1])?.ClearConnections(Direction.Up);
                             }
 
                             //Left
                             if (gridX - 1 >= 0 && grid.MyGrid[gridX - 1, gridY] != Guid.Empty)
                             {
-                                MapController.Get(grid.MyGrid[gridX - 1, gridY])
-                                    ?.ClearConnections((int) Directions.Right);
+                                MapController.Get(grid.MyGrid[gridX - 1, gridY])?.ClearConnections(Direction.Right);
                             }
 
                             //Right
                             if (gridX + 1 < grid.Width && grid.MyGrid[gridX + 1, gridY] != Guid.Empty)
                             {
-                                MapController.Get(grid.MyGrid[gridX + 1, gridY]).ClearConnections((int) Directions.Left);
+                                MapController.Get(grid.MyGrid[gridX + 1, gridY])?.ClearConnections(Direction.Left);
                             }
 
                             DbInterface.GenerateMapGrids();
@@ -3696,6 +3725,11 @@ namespace Intersect.Server.Networking
 
                     break;
 
+                case GameObjectType.UserVariable:
+                    obj = UserVariableBase.Get(id);
+
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -3820,6 +3854,11 @@ namespace Intersect.Server.Networking
 
                     break;
 
+                case GameObjectType.UserVariable:
+                    obj = UserVariableBase.Get(id);
+
+                    break;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -3888,6 +3927,10 @@ namespace Intersect.Server.Networking
                     else if (type == GameObjectType.GuildVariable)
                     {
                         DbInterface.CacheGuildVariableEventTextLookups();
+                    }
+                    else if (type == GameObjectType.UserVariable)
+                    {
+                        DbInterface.CacheUserVariableEventTextLookups();
                     }
 
                     DbInterface.SaveGameObject(obj);

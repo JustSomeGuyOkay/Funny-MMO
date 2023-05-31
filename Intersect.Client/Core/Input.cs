@@ -1,21 +1,17 @@
 using System;
-
 using Intersect.Admin.Actions;
 using Intersect.Client.Core.Controls;
 using Intersect.Client.Framework.GenericClasses;
-using Intersect.Client.Framework.Graphics;
 using Intersect.Client.Framework.Input;
 using Intersect.Client.General;
 using Intersect.Client.Interface;
 using Intersect.Client.Interface.Game;
 using Intersect.Client.Maps;
 using Intersect.Client.Networking;
-using Intersect.Logging;
 using Intersect.Utilities;
 
 namespace Intersect.Client.Core
 {
-
     public static partial class Input
     {
 
@@ -32,11 +28,6 @@ namespace Intersect.Client.Core
         public static void OnKeyPressed(Keys modifier, Keys key)
         {
             if (key == Keys.None)
-            {
-                return;
-            }
-
-            if (IsModifier(key))
             {
                 return;
             }
@@ -285,11 +276,6 @@ namespace Intersect.Client.Core
 
         public static void OnKeyReleased(Keys modifier, Keys key)
         {
-            if (IsModifier(key))
-            {
-                return;
-            }
-
             KeyUp?.Invoke(modifier, key);
             if (Interface.Interface.HasInputFocus())
             {
@@ -356,9 +342,9 @@ namespace Intersect.Client.Core
                     return;
                 }
 
-                if (Globals.Me.AttackTimer < Timing.Global.Ticks / TimeSpan.TicksPerMillisecond)
+                if (!Globals.Me.IsAttacking)
                 {
-                    Globals.Me.AttackTimer = Timing.Global.Ticks / TimeSpan.TicksPerMillisecond + Globals.Me.CalculateAttackTime();
+                    Globals.Me.AttackTimer = Timing.Global.Milliseconds + Globals.Me.CalculateAttackTime();
                 }
             }
 

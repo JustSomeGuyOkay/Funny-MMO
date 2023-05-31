@@ -87,6 +87,7 @@ namespace Intersect.Client.Core.Controls
             CreateControlMap(Control.OpenDebugger, new ControlValue(Keys.None, Keys.F2), ControlValue.Default);
             CreateControlMap(Control.OpenAdminPanel, new ControlValue(Keys.None, Keys.Insert), ControlValue.Default);
             CreateControlMap(Control.ToggleGui, new ControlValue(Keys.None, Keys.F11), ControlValue.Default);
+            CreateControlMap(Control.TurnAround, new ControlValue(Keys.None, Keys.Control), ControlValue.Default);
         }
 
         private static void MigrateControlBindings(Control control)
@@ -96,6 +97,8 @@ namespace Intersect.Client.Core.Controls
             {
                 Globals.Database.SavePreference($"{name}_binding0", Globals.Database.LoadPreference($"{name}_key1value"));
                 Globals.Database.SavePreference($"{name}_binding1", Globals.Database.LoadPreference($"{name}_key2value"));
+                Globals.Database.DeletePreference($"{name}_key1value");
+                Globals.Database.DeletePreference($"{name}_key2value");
             }
             else if (Globals.Database.HasPreference($"{name}_key1"))
             {
@@ -103,12 +106,9 @@ namespace Intersect.Client.Core.Controls
                 var key2 = JsonConvert.DeserializeObject<Keys>(Globals.Database.LoadPreference($"{name}_key2"));
                 Globals.Database.SavePreference($"{name}_binding0", JsonConvert.SerializeObject(new ControlValue(Keys.None, key1)));
                 Globals.Database.SavePreference($"{name}_binding1", JsonConvert.SerializeObject(new ControlValue(Keys.None, key2)));
+                Globals.Database.DeletePreference($"{name}_key1");
+                Globals.Database.DeletePreference($"{name}_key2");
             }
-
-            Globals.Database.DeletePreference($"{name}_key1");
-            Globals.Database.DeletePreference($"{name}_key2");
-            Globals.Database.DeletePreference($"{name}_key1value");
-            Globals.Database.DeletePreference($"{name}_key2value");
         }
 
         public void Save()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -152,16 +152,16 @@ namespace Intersect.Editor.Forms.Editors
             {
                 pnlContainer.Show();
                 txtName.Text = mEditorItem.Name;
-                nudAttack.Value = mEditorItem.BaseStat[(int) Stats.Attack];
-                nudMag.Value = mEditorItem.BaseStat[(int) Stats.AbilityPower];
-                nudDef.Value = mEditorItem.BaseStat[(int) Stats.Defense];
-                nudMR.Value = mEditorItem.BaseStat[(int) Stats.MagicResist];
-                nudSpd.Value = mEditorItem.BaseStat[(int) Stats.Speed];
+                nudAttack.Value = mEditorItem.BaseStat[(int) Stat.Attack];
+                nudMag.Value = mEditorItem.BaseStat[(int) Stat.AbilityPower];
+                nudDef.Value = mEditorItem.BaseStat[(int) Stat.Defense];
+                nudMR.Value = mEditorItem.BaseStat[(int) Stat.MagicResist];
+                nudSpd.Value = mEditorItem.BaseStat[(int) Stat.Speed];
                 nudBaseHP.Value = Math.Max(
-                    Math.Min(mEditorItem.BaseVital[(int) Vitals.Health], nudBaseHP.Maximum), nudBaseHP.Minimum
+                    Math.Min(mEditorItem.BaseVital[(int) Vital.Health], nudBaseHP.Maximum), nudBaseHP.Minimum
                 );
 
-                nudBaseMana.Value = mEditorItem.BaseVital[(int) Vitals.Mana];
+                nudBaseMana.Value = mEditorItem.BaseVital[(int) Vital.Mana];
                 nudPoints.Value = mEditorItem.BasePoints;
                 chkLocked.Checked = Convert.ToBoolean(mEditorItem.Locked);
 
@@ -174,13 +174,16 @@ namespace Intersect.Editor.Forms.Editors
                 nudScaling.Value = mEditorItem.Scaling;
                 cmbDamageType.SelectedIndex = mEditorItem.DamageType;
                 cmbScalingStat.SelectedIndex = mEditorItem.ScalingStat;
+                cmbAttackSprite.SelectedIndex = cmbAttackSprite.FindString(
+                        TextUtils.NullToNone(mEditorItem.AttackSpriteOverride)
+                );
                 cmbAttackAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.AttackAnimationId) + 1;
                 cmbAttackSpeedModifier.SelectedIndex = mEditorItem.AttackSpeedModifier;
                 nudAttackSpeedValue.Value = mEditorItem.AttackSpeedValue;
 
                 //Regen
-                nudHPRegen.Value = mEditorItem.VitalRegen[(int) Vitals.Health];
-                nudMpRegen.Value = mEditorItem.VitalRegen[(int) Vitals.Mana];
+                nudHPRegen.Value = mEditorItem.VitalRegen[(int) Vital.Health];
+                nudMpRegen.Value = mEditorItem.VitalRegen[(int) Vital.Mana];
 
                 //Exp
                 nudBaseExp.Value = mEditorItem.BaseExp;
@@ -299,8 +302,13 @@ namespace Intersect.Editor.Forms.Editors
             cmbAttackAnimation.Items.Clear();
             cmbAttackAnimation.Items.Add(Strings.General.None);
             cmbAttackAnimation.Items.AddRange(AnimationBase.Names);
+            cmbAttackSprite.Items.Clear();
+            cmbAttackSprite.Items.Add(Strings.General.None);
+            cmbAttackSprite.Items.AddRange(
+                GameContentManager.GetOverridesFor(GameContentManager.TextureType.Entity, "attack").ToArray()
+            );
             cmbScalingStat.Items.Clear();
-            for (var x = 0; x < ((int)Stats.Speed) + 1; x++)
+            for (var x = 0; x < ((int)Stat.Speed) + 1; x++)
             {
                 cmbScalingStat.Items.Add(Globals.GetStatName(x));
             }
@@ -338,7 +346,7 @@ namespace Intersect.Editor.Forms.Editors
             cmbDirection.Items.Clear();
             for (var i = 0; i < 4; i++)
             {
-                cmbDirection.Items.Add(Strings.Directions.dir[i]);
+                cmbDirection.Items.Add(Strings.Direction.dir[(Direction)i]);
             }
 
             btnVisualMapSelector.Text = Strings.Warping.visual;
@@ -394,6 +402,7 @@ namespace Intersect.Editor.Forms.Editors
             lblScalingStat.Text = Strings.ClassEditor.scalingstat;
             lblScalingAmount.Text = Strings.ClassEditor.scalingamount;
             lblAttackAnimation.Text = Strings.ClassEditor.attackanimation;
+            lblSpriteAttack.Text = Strings.ClassEditor.AttackSpriteOverride;
 
             grpAttackSpeed.Text = Strings.NpcEditor.attackspeed;
             lblAttackSpeedModifier.Text = Strings.NpcEditor.attackspeedmodifier;
@@ -771,23 +780,23 @@ namespace Intersect.Editor.Forms.Editors
                 nudSpeedIncrease.Maximum = 100;
             }
 
-            nudHpIncrease.Value = Math.Min(nudHpIncrease.Maximum, mEditorItem.VitalIncrease[(int) Vitals.Health]);
-            nudMpIncrease.Value = Math.Min(nudMpIncrease.Maximum, mEditorItem.VitalIncrease[(int) Vitals.Mana]);
+            nudHpIncrease.Value = Math.Min(nudHpIncrease.Maximum, mEditorItem.VitalIncrease[(int) Vital.Health]);
+            nudMpIncrease.Value = Math.Min(nudMpIncrease.Maximum, mEditorItem.VitalIncrease[(int) Vital.Mana]);
 
             nudStrengthIncrease.Value = Math.Min(
-                nudStrengthIncrease.Maximum, mEditorItem.StatIncrease[(int) Stats.Attack]
+                nudStrengthIncrease.Maximum, mEditorItem.StatIncrease[(int) Stat.Attack]
             );
 
-            nudArmorIncrease.Value = Math.Min(nudArmorIncrease.Maximum, mEditorItem.StatIncrease[(int) Stats.Defense]);
+            nudArmorIncrease.Value = Math.Min(nudArmorIncrease.Maximum, mEditorItem.StatIncrease[(int) Stat.Defense]);
             nudMagicIncrease.Value = Math.Min(
-                nudMagicIncrease.Maximum, mEditorItem.StatIncrease[(int) Stats.AbilityPower]
+                nudMagicIncrease.Maximum, mEditorItem.StatIncrease[(int) Stat.AbilityPower]
             );
 
             nudMagicResistIncrease.Value = Math.Min(
-                nudMagicResistIncrease.Maximum, mEditorItem.StatIncrease[(int) Stats.MagicResist]
+                nudMagicResistIncrease.Maximum, mEditorItem.StatIncrease[(int) Stat.MagicResist]
             );
 
-            nudSpeedIncrease.Value = Math.Min(nudSpeedIncrease.Maximum, mEditorItem.StatIncrease[(int) Stats.Speed]);
+            nudSpeedIncrease.Value = Math.Min(nudSpeedIncrease.Maximum, mEditorItem.StatIncrease[(int) Stat.Speed]);
 
             lblHpIncrease.Text = Strings.ClassEditor.hpboost.ToString(
                 rdoStaticIncrease.Checked ? "" : Strings.ClassEditor.boostpercent.ToString()
@@ -911,6 +920,11 @@ namespace Intersect.Editor.Forms.Editors
                 AnimationBase.Get(AnimationBase.IdFromList(cmbAttackAnimation.SelectedIndex - 1));
         }
 
+        private void cmbAttackSprite_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            mEditorItem.AttackSpriteOverride = TextUtils.SanitizeNone(cmbAttackSprite?.Text);
+        }
+
         private void cmbDamageType_SelectedIndexChanged(object sender, EventArgs e)
         {
             mEditorItem.DamageType = cmbDamageType.SelectedIndex;
@@ -956,22 +970,22 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudStr_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseStat[(int) Stats.Attack] = (int) nudAttack.Value;
+            mEditorItem.BaseStat[(int) Stat.Attack] = (int) nudAttack.Value;
         }
 
         private void nudMag_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseStat[(int) Stats.AbilityPower] = (int) nudMag.Value;
+            mEditorItem.BaseStat[(int) Stat.AbilityPower] = (int) nudMag.Value;
         }
 
         private void nudDef_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseStat[(int) Stats.Defense] = (int) nudDef.Value;
+            mEditorItem.BaseStat[(int) Stat.Defense] = (int) nudDef.Value;
         }
 
         private void nudMR_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseStat[(int) Stats.MagicResist] = (int) nudMR.Value;
+            mEditorItem.BaseStat[(int) Stat.MagicResist] = (int) nudMR.Value;
         }
 
         private void nudPoints_ValueChanged(object sender, EventArgs e)
@@ -981,7 +995,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudSpd_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseStat[(int) Stats.Speed] = (int) nudSpd.Value;
+            mEditorItem.BaseStat[(int) Stat.Speed] = (int) nudSpd.Value;
         }
 
         private void nudLevel_ValueChanged(object sender, EventArgs e)
@@ -996,13 +1010,13 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudHPRegen_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalRegen[(int) Vitals.Health] = (int) nudHPRegen.Value;
+            mEditorItem.VitalRegen[(int) Vital.Health] = (int) nudHPRegen.Value;
             UpdateIncreases();
         }
 
         private void nudMpRegen_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalRegen[(int) Vitals.Mana] = (int) nudMpRegen.Value;
+            mEditorItem.VitalRegen[(int) Vital.Mana] = (int) nudMpRegen.Value;
             UpdateIncreases();
         }
 
@@ -1023,41 +1037,41 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudHpIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalIncrease[(int) Vitals.Health] = (int) nudHpIncrease.Value;
+            mEditorItem.VitalIncrease[(int) Vital.Health] = (int) nudHpIncrease.Value;
         }
 
         private void nudMpIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.VitalIncrease[(int) Vitals.Mana] = (int) nudMpIncrease.Value;
+            mEditorItem.VitalIncrease[(int) Vital.Mana] = (int) nudMpIncrease.Value;
         }
 
         private void nudArmorIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.StatIncrease[(int) Stats.Defense] = (int) nudArmorIncrease.Value;
+            mEditorItem.StatIncrease[(int) Stat.Defense] = (int) nudArmorIncrease.Value;
             UpdateIncreases();
         }
 
         private void nudMagicResistIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.StatIncrease[(int) Stats.MagicResist] = (int) nudMagicResistIncrease.Value;
+            mEditorItem.StatIncrease[(int) Stat.MagicResist] = (int) nudMagicResistIncrease.Value;
             UpdateIncreases();
         }
 
         private void nudStrengthIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.StatIncrease[(int) Stats.Attack] = (int) nudStrengthIncrease.Value;
+            mEditorItem.StatIncrease[(int) Stat.Attack] = (int) nudStrengthIncrease.Value;
             UpdateIncreases();
         }
 
         private void nudMagicIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.StatIncrease[(int) Stats.AbilityPower] = (int) nudMagicIncrease.Value;
+            mEditorItem.StatIncrease[(int) Stat.AbilityPower] = (int) nudMagicIncrease.Value;
             UpdateIncreases();
         }
 
         private void nudSpeedIncrease_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.StatIncrease[(int) Stats.Speed] = (int) nudSpeedIncrease.Value;
+            mEditorItem.StatIncrease[(int) Stat.Speed] = (int) nudSpeedIncrease.Value;
             UpdateIncreases();
         }
 
@@ -1074,12 +1088,12 @@ namespace Intersect.Editor.Forms.Editors
 
         private void nudBaseHP_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseVital[(int) Vitals.Health] = (int) nudBaseHP.Value;
+            mEditorItem.BaseVital[(int) Vital.Health] = (int) nudBaseHP.Value;
         }
 
         private void nudBaseMana_ValueChanged(object sender, EventArgs e)
         {
-            mEditorItem.BaseVital[(int) Vitals.Mana] = (int) nudBaseMana.Value;
+            mEditorItem.BaseVital[(int) Vital.Mana] = (int) nudBaseMana.Value;
         }
 
         private void UpdateSpawnItemValues(bool keepIndex = false)
@@ -1525,7 +1539,6 @@ namespace Intersect.Editor.Forms.Editors
         }
 
         #endregion
-
     }
 
 }

@@ -1,5 +1,8 @@
-﻿using System.Data.Common;
+using System;
+using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +15,7 @@ using Intersect.Server.Entities;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Intersect.Server.Database.PlayerData
@@ -70,6 +74,8 @@ namespace Intersect.Server.Database.PlayerData
         public DbSet<GuildBankSlot> Guild_Bank { get; set; }
 
         public DbSet<GuildVariable> Guild_Variables { get; set; }
+
+        public DbSet<UserVariable> User_Variables { get; set; }
 
         internal async ValueTask Commit(
             bool commit = false,
@@ -132,6 +138,10 @@ namespace Intersect.Server.Database.PlayerData
 
             modelBuilder.Entity<Guild>().HasMany(b => b.Variables).WithOne(p => p.Guild);
             modelBuilder.Entity<GuildVariable>().HasIndex(p => new { p.VariableId, GuildId = p.GuildId }).IsUnique();
+
+            modelBuilder.Entity<User>().HasMany(b => b.Variables).WithOne(p => p.User);
+            modelBuilder.Entity<UserVariable>().HasKey(p => new { p.VariableId, UserId = p.UserId });
+            modelBuilder.Entity<UserVariable>().Ignore(v => v.Id);
         }
 
         public void Seed()
@@ -148,17 +158,6 @@ namespace Intersect.Server.Database.PlayerData
             if (migrations.IndexOf("20220331140427_GuildBankMaxSlotsMigration") > -1)
             {
                 GuildBankMaxSlotMigration.Run(this);
-            }
-        }
-
-        public void StopTrackingExcept(object obj)
-        {
-            foreach (var trackingState in ChangeTracker.Entries().ToArray())
-            {
-                if (trackingState.Entity != obj)
-                {
-                    trackingState.State = EntityState.Detached;
-                }
             }
         }
 

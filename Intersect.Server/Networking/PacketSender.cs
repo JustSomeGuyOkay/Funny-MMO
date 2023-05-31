@@ -478,7 +478,7 @@ namespace Intersect.Server.Networking
         //EntityDataPacket
         public static void SendEntityDataToMap(Entity en, MapController map, Player except = null)
         {
-            if (en == null || !MapController.TryGetInstanceFromMap(en.Map.Id, en.MapInstanceId, out var mapInstance))
+            if (en == null || !MapController.TryGetInstanceFromMap(map.Id, en.MapInstanceId, out var mapInstance))
             {
                 return;
             }
@@ -607,7 +607,7 @@ namespace Intersect.Server.Networking
         //EventLeavePacket
         public static void SendEntityLeaveTo(Player player, Event evt)
         {
-            player.SendPacket(new EntityLeftPacket(evt.Id, EntityTypes.Event, evt.MapId));
+            player.SendPacket(new EntityLeftPacket(evt.Id, EntityType.Event, evt.MapId));
         }
 
         /// <summary>
@@ -658,11 +658,12 @@ namespace Intersect.Server.Networking
                         continue;
                     }
 
-                    if (((GameObjectType)val == GameObjectType.Shop ||
+                    if ((GameObjectType)val == GameObjectType.Shop ||
                          (GameObjectType)val == GameObjectType.Event ||
                          (GameObjectType)val == GameObjectType.PlayerVariable ||
                          (GameObjectType)val == GameObjectType.ServerVariable ||
-                         (GameObjectType)val == GameObjectType.GuildVariable))
+                         (GameObjectType)val == GameObjectType.GuildVariable ||
+                         (GameObjectType)val == GameObjectType.UserVariable)
                     {
                         SendGameObjects(client, (GameObjectType)val, null);
                     }
@@ -690,7 +691,8 @@ namespace Intersect.Server.Networking
                     (GameObjectType) val == GameObjectType.Event ||
                     (GameObjectType) val == GameObjectType.PlayerVariable ||
                     (GameObjectType) val == GameObjectType.ServerVariable ||
-                    (GameObjectType)val == GameObjectType.GuildVariable)
+                    (GameObjectType) val == GameObjectType.GuildVariable ||
+                    (GameObjectType) val == GameObjectType.UserVariable)
                 {
                     continue;
                 }
@@ -935,8 +937,8 @@ namespace Intersect.Server.Networking
         //EntityStatsPacket
         public static EntityStatsPacket GenerateEntityStatsPacket(Entity en)
         {
-            var stats = new int[(int) Stats.StatCount];
-            for (var i = 0; i < (int) Stats.StatCount; i++)
+            var stats = new int[(int) Stat.StatCount];
+            for (var i = 0; i < (int) Stat.StatCount; i++)
             {
                 stats[i] = en.Stat[i].Value();
             }
@@ -1001,7 +1003,7 @@ namespace Intersect.Server.Networking
             Player player,
             string title,
             string prompt,
-            VariableDataTypes type,
+            VariableDataType type,
             Guid eventId
         )
         {
@@ -1037,7 +1039,7 @@ namespace Intersect.Server.Networking
                 {
                     if (item.VisibleToAll || item.Owner == player?.Id)
                     {
-                        items.Add(new MapItemUpdatePacket(mapId, item.TileIndex, item.UniqueId, item.ItemId, item.BagId, item.Quantity, item.StatBuffs));
+                        items.Add(new MapItemUpdatePacket(mapId, item.TileIndex, item.UniqueId, item.ItemId, item.BagId, item.Quantity, item.Properties));
                     }
                 }   
             }
@@ -1103,12 +1105,12 @@ namespace Intersect.Server.Networking
                     var player = Player.FindOnline(itemRef.Owner);
                     if (player != null)
                     {
-                        player.SendPacket(new MapItemUpdatePacket(mapId, itemRef.TileIndex, itemRef.UniqueId, itemRef.ItemId, itemRef.BagId, itemRef.Quantity, itemRef.StatBuffs));
+                        player.SendPacket(new MapItemUpdatePacket(mapId, itemRef.TileIndex, itemRef.UniqueId, itemRef.ItemId, itemRef.BagId, itemRef.Quantity, itemRef.Properties));
                     }
                 }
                 else
                 {
-                    SendDataToProximityOnMapInstance(mapId, mapInstanceId, new MapItemUpdatePacket(mapId, itemRef.TileIndex, itemRef.UniqueId, itemRef.ItemId, itemRef.BagId, itemRef.Quantity, itemRef.StatBuffs));
+                    SendDataToProximityOnMapInstance(mapId, mapInstanceId, new MapItemUpdatePacket(mapId, itemRef.TileIndex, itemRef.UniqueId, itemRef.ItemId, itemRef.BagId, itemRef.Quantity, itemRef.Properties));
                 }
             }
         }
@@ -1127,7 +1129,7 @@ namespace Intersect.Server.Networking
             {
                 invItems[i] = new InventoryUpdatePacket(
                     i, player.Items[i].ItemId, player.Items[i].Quantity, player.Items[i].BagId,
-                    player.Items[i].StatBuffs
+                    player.Items[i].Properties
                 );
             }
 
@@ -1145,7 +1147,7 @@ namespace Intersect.Server.Networking
             player.SendPacket(
                 new InventoryUpdatePacket(
                     slot, player.Items[slot].ItemId, player.Items[slot].Quantity, player.Items[slot].BagId,
-                    player.Items[slot].StatBuffs
+                    player.Items[slot].Properties
                 )
             );
         }
@@ -1456,9 +1458,9 @@ namespace Intersect.Server.Networking
             int targetType,
             Guid entityId,
             Guid mapId,
-            byte x,
-            byte y,
-            sbyte direction,
+            int x,
+            int y,
+            Direction direction,
             Guid mapInstanceId
         )
         {
@@ -1694,6 +1696,13 @@ namespace Intersect.Server.Networking
                     }
 
                     break;
+                case GameObjectType.UserVariable:
+                    foreach (var obj in UserVariableBase.Lookup)
+                    {
+                        SendGameObject(client, obj.Value, false, false, packetList);
+                    }
+
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
@@ -1770,7 +1779,7 @@ namespace Intersect.Server.Networking
         }
 
         //EntityDashPacket
-        public static void SendEntityDash(Entity en, Guid endMapId, byte endX, byte endY, int dashTime, sbyte direction)
+        public static void SendEntityDash(Entity en, Guid endMapId, byte endX, byte endY, int dashTime, Direction direction)
         {
             SendDataToProximityOnMapInstance(en.MapId, en.MapInstanceId, new EntityDashPacket(en.Id, endMapId, endX, endY, dashTime, direction));
         }
@@ -1893,7 +1902,7 @@ namespace Intersect.Server.Networking
         }
 
         //ChatBubblePacket
-        public static void SendChatBubble(Guid entityId, Guid mapInstanceId, EntityTypes type, string text, Guid mapId)
+        public static void SendChatBubble(Guid entityId, Guid mapInstanceId, EntityType type, string text, Guid mapId)
         {
             SendDataToProximityOnMapInstance(mapId, mapInstanceId, new ChatBubblePacket(entityId, type, mapId, text), null, TransmissionMode.Any);
         }
@@ -1942,7 +1951,7 @@ namespace Intersect.Server.Networking
                 player.SendPacket(
                     new TradeUpdatePacket(
                         trader.Id, slot, trader.Trading.Offer[slot].ItemId, trader.Trading.Offer[slot].Quantity,
-                        trader.Trading.Offer[slot].BagId, trader.Trading.Offer[slot].StatBuffs
+                        trader.Trading.Offer[slot].BagId, trader.Trading.Offer[slot].Properties
                     )
                 );
             }
@@ -1991,7 +2000,7 @@ namespace Intersect.Server.Networking
         {
             if (item != null && item.ItemId != Guid.Empty && item.Quantity > 0)
             {
-                player.SendPacket(new BagUpdatePacket(slot, item.ItemId, item.Quantity, item.BagId, item.StatBuffs));
+                player.SendPacket(new BagUpdatePacket(slot, item.ItemId, item.Quantity, item.BagId, item.Properties));
             }
             else
             {

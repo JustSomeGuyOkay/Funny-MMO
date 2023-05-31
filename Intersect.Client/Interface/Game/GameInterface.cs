@@ -109,7 +109,7 @@ namespace Intersect.Client.Interface.Game
             mChatBox = new Chatbox(GameCanvas, this);
             GameMenu = new Menu(GameCanvas);
             Hotbar = new HotBarWindow(GameCanvas);
-            PlayerBox = new EntityBox(GameCanvas, EntityTypes.Player, Globals.Me, true);
+            PlayerBox = new EntityBox(GameCanvas, EntityType.Player, Globals.Me, true);
             PlayerBox.SetEntity(Globals.Me);
             if (mPictureWindow == null)
             {
@@ -567,7 +567,7 @@ namespace Intersect.Client.Interface.Game
                 closedWindows = true;
             }
 
-            if (mCraftingWindow != null && mCraftingWindow.IsVisible() && !mCraftingWindow.Crafting)
+            if (mCraftingWindow != null && mCraftingWindow.IsVisible() && !mCraftingWindow.IsCrafting)
             {
                 CloseCraftingTable();
                 closedWindows = true;

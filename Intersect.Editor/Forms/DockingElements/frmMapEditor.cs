@@ -22,6 +22,7 @@ using Intersect.Logging;
 using Microsoft.Xna.Framework.Graphics;
 
 using WeifenLuo.WinFormsUI.Docking;
+using MapAttribute = Intersect.Enums.MapAttribute;
 
 namespace Intersect.Editor.Forms.DockingElements
 {
@@ -1033,19 +1034,19 @@ namespace Intersect.Editor.Forms.DockingElements
             {
                 if (gridX == -1 && gridY == 0)
                 {
-                    dir = (int) Directions.Left;
+                    dir = (int) Direction.Left;
                 }
                 else if (gridX == 1 && gridY == 0)
                 {
-                    dir = (int) Directions.Right;
+                    dir = (int) Direction.Right;
                 }
                 else if (gridX == 0 && gridY == -1)
                 {
-                    dir = (int) Directions.Up;
+                    dir = (int) Direction.Up;
                 }
                 else if (gridX == 0 && gridY == 1)
                 {
-                    dir = (int) Directions.Down;
+                    dir = (int) Direction.Down;
                 }
 
                 if (dir != -1)
@@ -1439,43 +1440,79 @@ namespace Intersect.Editor.Forms.DockingElements
             }
         }
 
-        private void SmartFillTile(int x, int y, Tile target)
+        private static readonly (int, int)[] InitialNeighborOffsets = new (int, int)[]
         {
-            int x1, y1;
+            (-1, 0),
+            (+1, 0),
+            (0, -1),
+            (0, +1)
+        };
 
+        private void BFSFillTile(int x, int y, Tile target)
+        {
             if (x < 0 || x >= Options.MapWidth || y < 0 || y >= Options.MapHeight)
             {
                 return;
             }
 
-            var selected = Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y];
-
-            if (selected.TilesetId == target.TilesetId &&
-                selected.X == target.X &&
-                selected.Y == target.Y &&
-                selected.Autotile == target.Autotile)
+            var currentLayer = Globals.CurrentMap.Layers[Globals.CurrentLayer];
+            void FillTile(int tileX, int tileY)
             {
-                if (Globals.Autotilemode == 0)
+                currentLayer[tileX, tileY].TilesetId = Globals.CurrentTileset.Id;
+                currentLayer[tileX, tileY].Autotile = (byte)Globals.Autotilemode;
+
+                currentLayer[tileX, tileY].X = Globals.CurSelX;
+                currentLayer[tileX, tileY].Y = Globals.CurSelY;
+                
+                if (currentLayer[tileX, tileY].Autotile == 0)
                 {
-                    x1 = x % (Globals.CurSelW + 1);
-                    y1 = y % (Globals.CurSelH + 1);
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].TilesetId = Globals.CurrentTileset.Id;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].X = Globals.CurSelX + x1;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].Y = Globals.CurSelY + y1;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].Autotile = 0;
+                    currentLayer[tileX, tileY].X += x % (Globals.CurSelW + 1);
+                    currentLayer[tileX, tileY].Y += y % (Globals.CurSelH + 1);
                 }
-                else
+            }
+
+            var visited = new HashSet<(int, int)>();
+            var neighbors = new Queue<(int x, int y)>();
+            neighbors.Enqueue((x, y));
+            while (neighbors.Count > 0)
+            {
+                var neighbor = neighbors.Dequeue();
+                if (visited.Contains(neighbor))
                 {
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].TilesetId = Globals.CurrentTileset.Id;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].X = Globals.CurSelX;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].Y = Globals.CurSelY;
-                    Globals.CurrentMap.Layers[Globals.CurrentLayer][x, y].Autotile = (byte) Globals.Autotilemode;
+                    continue;
                 }
 
-                SmartFillTile(x, y - 1, target);
-                SmartFillTile(x, y + 1, target);
-                SmartFillTile(x - 1, y, target);
-                SmartFillTile(x + 1, y, target);
+                FillTile(neighbor.x, neighbor.y);
+                _ = visited.Add(neighbor);
+
+                foreach (var (offsetX, offsetY) in InitialNeighborOffsets)
+                {
+                    var nextNeighbor = (x: neighbor.x + offsetX, y: neighbor.y + offsetY);
+
+                    if (
+                        nextNeighbor.x < 0 ||
+                        nextNeighbor.y < 0 ||
+                        nextNeighbor.x >= Options.MapWidth ||
+                        nextNeighbor.y >= Options.MapHeight
+                    )
+                    {
+                        continue;
+                    }
+
+                    if (visited.Contains(nextNeighbor))
+                    {
+                        continue;
+                    }
+
+                    var nextTile = currentLayer[nextNeighbor.x, nextNeighbor.y];
+                    if (nextTile.TilesetId == target.TilesetId &&
+                        nextTile.X == target.X &&
+                        nextTile.Y == target.Y &&
+                        nextTile.Autotile == target.Autotile)
+                    {
+                        neighbors.Enqueue(nextNeighbor);
+                    }
+                }
             }
         }
 
@@ -1489,7 +1526,7 @@ namespace Intersect.Editor.Forms.DockingElements
                 target.Y != Globals.CurSelY ||
                 target.Autotile != (byte) Globals.Autotilemode)
             {
-                SmartFillTile(x, y, target);
+                BFSFillTile(x, y, target);
 
                 Globals.CurrentMap.InitAutotiles();
                 if (MapInstance.Get(Globals.CurrentMap.Left) != null)
@@ -1525,7 +1562,7 @@ namespace Intersect.Editor.Forms.DockingElements
             }
         }
 
-        private void SmartFillAttribute(int x, int y, string data  = null, MapAttribute newAttribute = null)
+        private void SmartFillAttribute(int x, int y, string data  = null, GameObjects.Maps.MapAttribute newAttribute = null)
         {
             if (x < 0 || x >= Options.MapWidth || y < 0 || y >= Options.MapHeight)
             {
@@ -1643,9 +1680,9 @@ namespace Intersect.Editor.Forms.DockingElements
             }
         }
 
-        private void SmartEraseAttribute(int x, int y, MapAttributes attribute)
+        private void SmartEraseAttribute(int x, int y, MapAttribute attribute)
         {
-            var a = MapAttributes.Walkable;
+            var a = MapAttribute.Walkable;
 
             if (x < 0 || x >= Options.MapWidth || y < 0 || y >= Options.MapHeight)
             {
@@ -1670,7 +1707,7 @@ namespace Intersect.Editor.Forms.DockingElements
 
         public void SmartEraseAttributes(int x, int y)
         {
-            var attribute = MapAttributes.Walkable;
+            var attribute = MapAttribute.Walkable;
 
             if (Globals.CurrentMap.Attributes[x, y] != null)
             {

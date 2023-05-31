@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Web.Http;
 using System.Web.Http.Routing;
@@ -16,7 +16,6 @@ using Intersect.Server.Web.RestApi.Middleware;
 using Intersect.Server.Web.RestApi.Payloads;
 using Intersect.Server.Web.RestApi.RouteProviders;
 using Intersect.Server.Web.RestApi.Services;
-
 using Microsoft.Owin.Hosting;
 using Microsoft.Owin.Logging;
 
@@ -62,7 +61,7 @@ namespace Intersect.Server.Web.RestApi
 
         public void Configure(IAppBuilder appBuilder)
         {
-            // Configure Web API for self-host. 
+            // Configure Web API for self-host.
             var config = new HttpConfiguration();
 
             var services = config.Services;
@@ -71,12 +70,14 @@ namespace Intersect.Server.Web.RestApi
                 throw new InvalidOperationException();
             }
 
+            appBuilder.Use<NetworkFilterMiddleware>(Configuration.AllowedNetworkTypes);
+
             Configuration.Cors.Select(configuration => configuration.AsCorsOptions())
                 ?.ToList()
                 .ForEach(corsOptions => appBuilder.UseCors(corsOptions));
 
             var constraintResolver = new DefaultInlineConstraintResolver();
-            constraintResolver.ConstraintMap?.Add(nameof(AdminActions), typeof(AdminActionsConstraint));
+            constraintResolver.ConstraintMap?.Add(nameof(AdminAction), typeof(AdminActionsConstraint));
             constraintResolver.ConstraintMap?.Add(nameof(LookupKey), typeof(LookupKey.Constraint));
             constraintResolver.ConstraintMap?.Add(nameof(ChatMessage), typeof(ChatMessage.Constraint));
 
@@ -85,10 +86,15 @@ namespace Intersect.Server.Web.RestApi
             config.DependencyResolver = new IntersectServiceDependencyResolver(Configuration, config);
 
             // Make JSON the default response type for browsers
-            config.Formatters?.JsonFormatter?.Map("accept", "text/html", "application/json");
+            config.Formatters?.XmlFormatter.RemoveSupportedMediaType("application/xml");
+            config.Formatters?.XmlFormatter.RemoveSupportedMediaType("text/xml");
+            config.Formatters?.JsonFormatter.RemoveSupportedMediaType("text/json");
+            config.Formatters?.JsonFormatter.Map("accept", "text/html", "application/json");
 
             if (Configuration.DebugMode)
             {
+                // SwaggerIsolation.ConfigureSwagger(config);
+
                 appBuilder.SetLoggerFactory(new IntersectLoggerFactory());
             }
 

@@ -463,7 +463,7 @@ namespace Intersect.Client.Localization
 
             public static LocalizedString sixmonths = @"6 months";
 
-            public static LocalizedString cancel = @"Cancel:";
+            public static LocalizedString cancel = @"Cancel";
 
             public static LocalizedString duration = @"Duration:";
 
@@ -471,7 +471,7 @@ namespace Intersect.Client.Localization
 
             public static LocalizedString ip = @"Include IP:";
 
-            public static LocalizedString ok = @"Okay:";
+            public static LocalizedString ok = @"Okay";
 
             public static LocalizedString reason = @"Reason:";
 
@@ -519,6 +519,8 @@ namespace Intersect.Client.Localization
             public static LocalizedString Tenacity = @"Tenacity: {00}%";
 
             public static LocalizedString CooldownReduction = @"Cooldown Reduction: {00}%";
+
+            public static LocalizedString Manasteal = @"Manasteal: {00}%";
 
         }
 
@@ -602,6 +604,10 @@ namespace Intersect.Client.Localization
             public static LocalizedString title = @"Chat";
 
             public static LocalizedString toofast = @"You are chatting too fast!";
+
+            public static LocalizedString ToggleLogButtonToolTip = @"Toggle chat log visibility";
+            
+            public static LocalizedString ClearLogButtonToolTip = @"Clear chat log messages";
 
             public static Dictionary<ChatboxTab, LocalizedString> ChatTabButtons = new Dictionary<Enums.ChatboxTab, LocalizedString>() {
                 { ChatboxTab.All, @"All" },
@@ -710,7 +716,8 @@ namespace Intersect.Client.Localization
                 {"opensettings", @"Open Settings:"},
                 {"opendebugger", @"Open Debugger:"},
                 {"openadminpanel", @"Open Admin Panel:"},
-                {"togglegui", @"Toggle Interface:"}
+                {"togglegui", @"Toggle Interface:"},
+                {"turnaround", @"Hold to turn around:"},
             };
 
             public static LocalizedString listening = @"Listening";
@@ -1183,6 +1190,9 @@ namespace Intersect.Client.Localization
             public static LocalizedString Learn = @"Learn {00}";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString Cast = @"Cast {00}";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Drop = @"Drop {00}";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -1341,6 +1351,7 @@ namespace Intersect.Client.Localization
                 {3, @"Tenacity:"},
                 {4, @"Luck:"},
                 {5, @"Bonus Experience:"},
+                {6, @"Manasteal:"},
             };
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -1699,6 +1710,9 @@ namespace Intersect.Client.Localization
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString AutoCloseWindows = @"Auto-close Windows";
+            
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString AutoToggleChatLog = @"Auto-toggle chat log visibility";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Cancel = @"Cancel";
@@ -1719,47 +1733,22 @@ namespace Intersect.Client.Localization
             public static LocalizedString Fps90 = @"90";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString FriendOverheadInfo = @"Friends";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Fullscreen = @"Fullscreen";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString GameSettingsTab = @"Game";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString GuildMemberOverheadInfo = @"Guild";
+            public static LocalizedString InformationSettings = @"Information";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString InterfaceSettings = @"Interface";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString InterfaceSettingsHelper = @"Game Interface related settings.";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString KeyBindingSettingsTab = @"Controls";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString MusicVolume = @"Music Volume: {00}%";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString MyOverheadInfo = @"Myself";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString NpcOverheadInfo = @"NPCs";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString OverheadInformationSettings = @"Overhead Information";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString OverheadInfoSettingsHelper =
-                @"Overhead information may still be viewed by positioning the cursor over the hidden cases.";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString PartyMemberOverheadInfo = @"Party";
-
-            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static LocalizedString PlayerOverheadInfo = @"Players";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Resolution = @"Resolution:";
@@ -1774,10 +1763,67 @@ namespace Intersect.Client.Localization
             public static LocalizedString SoundVolume = @"Sound Volume: {00}%";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowExperienceAsPercentage = @"Show experience as percentage";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowFriendOverheadHpBar = @"Show friends overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowFriendOverheadInformation = @"Show friends overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowGuildOverheadHpBar = @"Show guild overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowGuildOverheadInformation = @"Show guild overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowHealthAsPercentage = @"Show health as percentage";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowNpcOverheadHpBar = @"Show NPC overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowNpcOverheadInformation = @"Show NPC overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowManaAsPercentage = @"Show mana as percentage";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowMyOverheadHpBar = @"Show my overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowMyOverheadInformation = @"Show my overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowPartyOverheadHpBar = @"Show party overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowPartyOverheadInformation = @"Show party overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowPlayerOverheadHpBar = @"Show players overhead HP bar";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString ShowPlayerOverheadInformation = @"Show players overhead information";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString StickyTarget = @"Sticky Target";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString TargetFps = @"Target FPS:";
+            
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString TargetingSettings = @"Targeting";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString AutoTurnToTarget = @"Auto-turn to target";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString Title = @"Settings";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString TypewriterText = @"Typewriter Text";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString UnlimitedFps = @"No Limit";

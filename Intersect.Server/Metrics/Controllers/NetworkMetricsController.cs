@@ -1,6 +1,7 @@
-﻿using Intersect.Server.Networking;
 using System.Collections.Generic;
 using System.Linq;
+
+using Intersect.Server.Networking;
 
 namespace Intersect.Server.Metrics.Controllers
 {
@@ -32,10 +33,8 @@ namespace Intersect.Server.Metrics.Controllers
 
         public Histogram TotalSentPacketProcessingTime { get; private set; }
 
-        public NetworkMetricsController()
+        public NetworkMetricsController() : base(CONTEXT)
         {
-            Context = CONTEXT;
-
             Clients = new Histogram(nameof(Clients), this);
             TotalBandwidth = new Histogram(nameof(TotalBandwidth), this);
             SentBytes = new Histogram(nameof(SentBytes), this);
@@ -51,10 +50,9 @@ namespace Intersect.Server.Metrics.Controllers
 
         }
 
-
-        public override IDictionary<string, object> Data()
+        protected override IDictionary<string, object> InternalData()
         {
-            var res = base.Data();
+            var res = base.InternalData();
 
             var top10Sent = PacketSender.SentPacketTypes.Where(pair => pair.Value > 0).OrderByDescending(pair => pair.Value).Take(10).ToArray();
             var top10Received = PacketHandler.AcceptedPacketTypes.Where(pair => pair.Value > 0).OrderByDescending(pair => pair.Value).Take(10).ToArray();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Intersect.Server.Database;
 using Intersect.Server.Database.PlayerData.Players;
@@ -14,6 +14,8 @@ namespace Intersect.Server.Maps
         [JsonIgnore] public int AttributeSpawnX = -1;
 
         [JsonIgnore] public int AttributeSpawnY = -1;
+
+        [JsonIgnore] public long AttributeRespawnTime = Options.Instance.MapOpts.ItemAttributeRespawnTime;
 
         [JsonIgnore] public long DespawnTime;
 
@@ -35,11 +37,16 @@ namespace Intersect.Server.Maps
         // We need this mostly for the client-side.. They can't keep track of our timer after all!
         public bool VisibleToAll = true;
 
-        public MapItem(Guid itemId, int quantity, int x, int y) : base(itemId, quantity, null, null)
+        public MapItem(Guid itemId, int quantity, int x, int y, long respawnTime = 0) : base(itemId, quantity)
         {
             UniqueId = Guid.NewGuid();
             X = x;
             Y = y;
+
+            if (respawnTime > 0)
+            {
+                AttributeRespawnTime = respawnTime;
+            }
         }
 
         public MapItem(Guid itemId, int quantity, int x, int y, Guid? bagId, Bag bag) : base(itemId, quantity, bagId, bag)
@@ -60,11 +67,11 @@ namespace Intersect.Server.Maps
         /// <param name="item">The item to take the Stat Buffs from and apply them to this MapItem.</param>
         public void SetupStatBuffs(Item item)
         {
-            if (StatBuffs != null && item.StatBuffs != null)
+            if (Properties.StatModifiers != null && item.Properties.StatModifiers != null)
             {
-                for (var i = 0; i < StatBuffs.Length; ++i)
+                for (var i = 0; i < Properties.StatModifiers.Length; ++i)
                 {
-                    StatBuffs[i] = item.StatBuffs.Length > i ? item.StatBuffs[i] : 0;
+                    Properties.StatModifiers[i] = item.Properties.StatModifiers.Length > i ? item.Properties.StatModifiers[i] : 0;
                 }
             }
         }

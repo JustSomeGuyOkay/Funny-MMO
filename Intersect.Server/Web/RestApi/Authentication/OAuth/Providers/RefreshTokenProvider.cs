@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -63,17 +63,14 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
             var ticketId = context.OwinContext.Get<Guid>("ticket_id");
             if (ticketId == Guid.Empty)
             {
-                identity.FindAll(IntersectClaimTypes.TicketId)
-                    ?.ToList()
-                    .ForEach(
-                        claim =>
-                        {
-                            if (!Guid.TryParse(claim?.Value, out var guid) || guid == Guid.Empty)
-                            {
-                                identity.TryRemoveClaim(claim);
-                            }
-                        }
-                    );
+                var tickedIdClaims = identity.FindAll(IntersectClaimTypes.TicketId) ?? Enumerable.Empty<Claim>();
+                foreach (var claim in tickedIdClaims)
+                {
+                    if (!Guid.TryParse(claim?.Value, out var guid) || guid == Guid.Empty)
+                    {
+                        _ = identity.TryRemoveClaim(claim);
+                    }
+                }
 
                 var ticketIdClaim = identity.FindFirst(IntersectClaimTypes.TicketId);
                 if (ticketIdClaim == null || !Guid.TryParse(ticketIdClaim.Value, out ticketId))
@@ -98,7 +95,7 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
 
             token.Ticket = context.SerializeTicket();
 
-            if (await RefreshToken.Add(token, true))
+            if (await RefreshToken.TryAddAsync(token))
             {
                 context.SetToken(token.Id.ToString());
             }
@@ -111,9 +108,7 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
                 return;
             }
 
-            var refreshToken = RefreshToken.Find(refreshTokenId);
-
-            if (refreshToken == null)
+            if (!RefreshToken.TryFind(refreshTokenId, out var refreshToken))
             {
                 return;
             }

@@ -68,22 +68,30 @@ namespace Intersect.Editor.Localization
         {
             var pVar = GetVariableComparisonString((dynamic)condition.Comparison);
 
-            if (condition.VariableType == VariableTypes.PlayerVariable)
+            if (condition.VariableType == VariableType.PlayerVariable)
             {
                 return EventConditionDesc.playervariable.ToString(
                     PlayerVariableBase.GetName(condition.VariableId), pVar
                 );
             }
-            else if (condition.VariableType == VariableTypes.ServerVariable)
+            else if (condition.VariableType == VariableType.ServerVariable)
             {
                 return EventConditionDesc.globalvariable.ToString(
                     ServerVariableBase.GetName(condition.VariableId), pVar
                 );
             }
-            else if (condition.VariableType == VariableTypes.GuildVariable)
+            else if (condition.VariableType == VariableType.GuildVariable)
             {
                 return EventConditionDesc.guildvariable.ToString(
                     GuildVariableBase.GetName(condition.VariableId), pVar
+                );
+            }
+            else if (condition.VariableType == VariableType.UserVariable)
+            {
+                return EventConditionDesc.UserVariable.ToString(
+                    Strings.GameObjectStrings.UserVariable,
+                    UserVariableBase.GetName(condition.VariableId),
+                    pVar
                 );
             }
 
@@ -97,13 +105,13 @@ namespace Intersect.Editor.Localization
                 var amount = string.Empty;
                 switch (condition.VariableType)
                 {
-                    case VariableTypes.PlayerVariable:
+                    case VariableType.PlayerVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
                         break;
-                    case VariableTypes.ServerVariable:
+                    case VariableType.ServerVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
                         break;
-                    case VariableTypes.GuildVariable:
+                    case VariableType.GuildVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.guildvariable, GuildVariableBase.GetName(condition.VariableId));
                         break;
                 }
@@ -136,27 +144,27 @@ namespace Intersect.Editor.Localization
             var pLvl = "";
             switch (condition.Comparator)
             {
-                case VariableComparators.Equal:
+                case VariableComparator.Equal:
                     pLvl = EventConditionDesc.equal.ToString(condition.Value);
 
                     break;
-                case VariableComparators.GreaterOrEqual:
+                case VariableComparator.GreaterOrEqual:
                     pLvl = EventConditionDesc.greaterequal.ToString(condition.Value);
 
                     break;
-                case VariableComparators.LesserOrEqual:
+                case VariableComparator.LesserOrEqual:
                     pLvl = EventConditionDesc.lessthanequal.ToString(condition.Value);
 
                     break;
-                case VariableComparators.Greater:
+                case VariableComparator.Greater:
                     pLvl = EventConditionDesc.greater.ToString(condition.Value);
 
                     break;
-                case VariableComparators.Less:
+                case VariableComparator.Less:
                     pLvl = EventConditionDesc.lessthan.ToString(condition.Value);
 
                     break;
-                case VariableComparators.NotEqual:
+                case VariableComparator.NotEqual:
                     pLvl = EventConditionDesc.notequal.ToString(condition.Value);
 
                     break;
@@ -326,13 +334,13 @@ namespace Intersect.Editor.Localization
                 var amount = string.Empty;
                 switch (condition.VariableType)
                 {
-                    case VariableTypes.PlayerVariable:
+                    case VariableType.PlayerVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.playervariable, PlayerVariableBase.GetName(condition.VariableId));
                         break;
-                    case VariableTypes.ServerVariable:
+                    case VariableType.ServerVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.globalvariable, ServerVariableBase.GetName(condition.VariableId));
                         break;
-                    case VariableTypes.GuildVariable:
+                    case VariableType.GuildVariable:
                         amount = string.Format(@"({0}: {1})", EventConditional.guildvariable, GuildVariableBase.GetName(condition.VariableId));
                         break;
                 }
@@ -355,7 +363,7 @@ namespace Intersect.Editor.Localization
             return EventConditionDesc.checkequippedslot.ToString(condition.Name);
         }
 
-        public static string GetVariableComparisonString(VariableCompaison comparison)
+        public static string GetVariableComparisonString(VariableComparison comparison)
         {
             return "";
         }
@@ -371,19 +379,19 @@ namespace Intersect.Editor.Localization
             }
             else
             {
-                if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
+                if (comparison.CompareVariableType == VariableType.PlayerVariable)
                 {
                     value = EventConditionDesc.playervariablevalue.ToString(
                         PlayerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
-                else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
+                else if (comparison.CompareVariableType == VariableType.ServerVariable)
                 {
                     value = EventConditionDesc.globalvariablevalue.ToString(
                         ServerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
-                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                else if (comparison.CompareVariableType == VariableType.GuildVariable)
                 {
                     value = EventConditionDesc.guildvariablevalue.ToString(
                         GuildVariableBase.GetName(comparison.CompareVariableId)
@@ -411,22 +419,27 @@ namespace Intersect.Editor.Localization
             if (comparison.CompareVariableId == Guid.Empty)
             {
                 value = comparison.Value.ToString();
+
+                if (comparison.TimeSystem)
+                {
+                    value = EventConditionDesc.SystemTime;
+                }
             }
             else
             {
-                if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
+                if (comparison.CompareVariableType == VariableType.PlayerVariable)
                 {
                     value = EventConditionDesc.playervariablevalue.ToString(
                         PlayerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
-                else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
+                else if (comparison.CompareVariableType == VariableType.ServerVariable)
                 {
                     value = EventConditionDesc.globalvariablevalue.ToString(
                         ServerVariableBase.GetName(comparison.CompareVariableId)
                     );
                 }
-                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                else if (comparison.CompareVariableType == VariableType.GuildVariable)
                 {
                     value = EventConditionDesc.guildvariablevalue.ToString(
                         GuildVariableBase.GetName(comparison.CompareVariableId)
@@ -436,27 +449,27 @@ namespace Intersect.Editor.Localization
 
             switch (comparison.Comparator)
             {
-                case VariableComparators.Equal:
+                case VariableComparator.Equal:
                     pVar = EventConditionDesc.equal.ToString(value);
 
                     break;
-                case VariableComparators.GreaterOrEqual:
+                case VariableComparator.GreaterOrEqual:
                     pVar = EventConditionDesc.greaterequal.ToString(value);
 
                     break;
-                case VariableComparators.LesserOrEqual:
+                case VariableComparator.LesserOrEqual:
                     pVar = EventConditionDesc.lessthanequal.ToString(value);
 
                     break;
-                case VariableComparators.Greater:
+                case VariableComparator.Greater:
                     pVar = EventConditionDesc.greater.ToString(value);
 
                     break;
-                case VariableComparators.Less:
+                case VariableComparator.Less:
                     pVar = EventConditionDesc.lessthan.ToString(value);
 
                     break;
-                case VariableComparators.NotEqual:
+                case VariableComparator.NotEqual:
                     pVar = EventConditionDesc.notequal.ToString(value);
 
                     break;
@@ -469,9 +482,9 @@ namespace Intersect.Editor.Localization
         {
             switch (comparison.Comparator)
             {
-                case StringVariableComparators.Equal:
+                case StringVariableComparator.Equal:
                     return EventConditionDesc.equal.ToString(comparison.Value);
-                case StringVariableComparators.Contains:
+                case StringVariableComparator.Contains:
                     return EventConditionDesc.contains.ToString(comparison.Value);
             }
 
@@ -860,18 +873,18 @@ namespace Intersect.Editor.Localization
         {
             public static Dictionary<int, LocalizedString> AttributeTypes = new Dictionary<int, LocalizedString>
             {
-                {(int) MapAttributes.Animation, @"Map Animation" },
-                {(int) MapAttributes.Blocked, @"Blocked" },
-                {(int) MapAttributes.Critter, @"Critter" },
-                {(int) MapAttributes.GrappleStone, @"Grapple Stone" },
-                {(int) MapAttributes.Item, @"Item Spawn" },
-                {(int) MapAttributes.NpcAvoid, @"Npc Avoid" },
-                {(int) MapAttributes.Resource, @"Resource Spawn" },
-                {(int) MapAttributes.Slide, @"Slide" },
-                {(int) MapAttributes.Sound, @"Map Sound" },
-                {(int) MapAttributes.Walkable, @"Walkable" },
-                {(int) MapAttributes.Warp, @"Warp" },
-                {(int) MapAttributes.ZDimension, @"Z-Dimension" },
+                {(int) MapAttribute.Animation, @"Map Animation" },
+                {(int) MapAttribute.Blocked, @"Blocked" },
+                {(int) MapAttribute.Critter, @"Critter" },
+                {(int) MapAttribute.GrappleStone, @"Grapple Stone" },
+                {(int) MapAttribute.Item, @"Item Spawn" },
+                {(int) MapAttribute.NpcAvoid, @"Npc Avoid" },
+                {(int) MapAttribute.Resource, @"Resource Spawn" },
+                {(int) MapAttribute.Slide, @"Slide" },
+                {(int) MapAttribute.Sound, @"Map Sound" },
+                {(int) MapAttribute.Walkable, @"Walkable" },
+                {(int) MapAttribute.Warp, @"Warp" },
+                {(int) MapAttribute.ZDimension, @"Z-Dimension" },
             };
 
             public static string FormatSpawnLevel(int level)
@@ -963,6 +976,10 @@ namespace Intersect.Editor.Localization
 
             public static LocalizedString ResourceSpawn = @"Resource";
 
+            public static LocalizedString RespawnTime = @"Respawn Time (ms)";
+
+            public static LocalizedString RespawnTimeTooltip = @"0 for server default";
+
             public static LocalizedString Slide = @"Slide";
 
             public static LocalizedString Sound = @"Sound";
@@ -1005,7 +1022,9 @@ namespace Intersect.Editor.Localization
 
             public static LocalizedString armorboost = @"Armor (+{00}):";
 
-            public static LocalizedString attackanimation = @"Attack Animation:";
+            public static LocalizedString attackanimation = @"Extra Attack Animation:";
+
+            public static LocalizedString AttackSpriteOverride = @"Sprite Attack Animation:";
 
             public static LocalizedString attackboost = @"Attack (+{00}):";
 
@@ -1437,9 +1456,9 @@ Tick timer saved in server config.json.";
 
         }
 
-        public partial struct Directions
+        public partial struct Direction
         {
-            public static Dictionary<int, LocalizedString> CritterDirections = new Dictionary<int, LocalizedString>()
+            public static Dictionary<int, LocalizedString> CritterDirection = new Dictionary<int, LocalizedString>()
             {
                 {0, @"Random"},
                 {1, @"Up"},
@@ -1448,13 +1467,13 @@ Tick timer saved in server config.json.";
                 {4, @"Right"}
             };
 
-            public static Dictionary<int, LocalizedString> dir = new Dictionary<int, LocalizedString>()
+            public static Dictionary<Enums.Direction, LocalizedString> dir = new Dictionary<Enums.Direction, LocalizedString>()
             {
-                {-1, @"Retain Direction"},
-                {0, @"Up"},
-                {1, @"Down"},
-                {2, @"Left"},
-                {3, @"Right"}
+                {Enums.Direction.None, @"Retain Direction"},
+                {Enums.Direction.Up, @"Up"},
+                {Enums.Direction.Down, @"Down"},
+                {Enums.Direction.Left, @"Left"},
+                {Enums.Direction.Right, @"Right"}
             };
 
             public static Dictionary<int, LocalizedString> WarpDirections = new Dictionary<int, LocalizedString>()
@@ -1541,6 +1560,10 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString InvalidDirectoryCaption = @"Invalid Directory";
 
+            public static LocalizedString InvalidInputCaption = @"Invalid Input";
+
+            public static LocalizedString InvalidInputXCaption = @"Invalid Input - {0}";
+
             public static LocalizedString importfailed =
                 @"Cannot import map. Currently selected map is not an Intersect map file or was exported with a different version of the Intersect editor!";
 
@@ -1550,6 +1573,8 @@ Tick timer saved in server config.json.";
                 @"The resources directory could not be found! Intersect will now close.";
 
             public static LocalizedString resourcesnotfoundtitle = @"Resources not found!";
+
+            public static LocalizedString UnableToParseInvalidIntegerFormat = @"Unable to parse '{00}', the input should only be digits and the minus sign (-) for negative numbers.";
 
         }
 
@@ -1887,11 +1912,15 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString dupguildvariable = @"Guild Variable: {00}'s Value";
 
+            public static LocalizedString DupUserVariable = @"{00}: {01}'s Value";
+
             public static LocalizedString addglobalvariable = @"Add Global Variable: {00}'s Value";
 
             public static LocalizedString addplayervariable = @"Add Player Variable: {00}'s Value";
 
             public static LocalizedString addguildvariable = @"Add Guild Variable: {00}'s Value";
+
+            public static LocalizedString AddUserVariable = @"Add {00}: {01}'s Value";
 
             public static LocalizedString subtractglobalvariable = @"Subtract Global Variable: {00}'s Value";
 
@@ -1899,11 +1928,15 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString subtractguildvariable = @"Subtract Guild Variable: {00}'s Value";
 
+            public static LocalizedString SubtractUserVariable = @"Subtract {00}: {01}'s Value";
+
             public static LocalizedString multiplyglobalvariable = @"Multiply Global Variable: {00}'s Value";
 
             public static LocalizedString multiplyplayervariable = @"Multiply Player Variable: {00}'s Value";
 
             public static LocalizedString multiplyguildvariable = @"Multiply Guild Variable: {00}'s Value";
+
+            public static LocalizedString MultiplyUserVariable = @"Multiply {00}: {01}'s Value";
 
             public static LocalizedString divideglobalvariable = @"Divide Global Variable: {00}'s Value";
 
@@ -1911,17 +1944,23 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString divideguildvariable = @"Divide Guild Variable: {00}'s Value";
 
+            public static LocalizedString DivideUserVariable = @"Divide {00}: {01}'s Value";
+
             public static LocalizedString leftshiftglobalvariable = @"Left Bit Shift Global Variable: {00}'s Value";
 
             public static LocalizedString leftshiftplayervariable = @"Left Bit Shift Player Variable: {00}'s Value";
 
             public static LocalizedString leftshiftguildvariable = @"Left Bit Shift Guild Variable: {00}'s Value";
 
+            public static LocalizedString LeftShiftUserVariable = @"Left Bit Shift {00}: {01}'s Value";
+
             public static LocalizedString rightshiftglobalvariable = @"Right Bit Shift Global Variable: {00}'s Value";
 
             public static LocalizedString rightshiftplayervariable = @"Right Bit Shift Player Variable: {00}'s Value";
 
             public static LocalizedString rightshiftguildvariable = @"Right Bit Shift Guild Variable: {00}'s Value";
+
+            public static LocalizedString RightShiftUserVariable = @"Right Bit Shift {00}: {01}'s Value";
 
             public static LocalizedString enditemchange = @"End Item Change";
 
@@ -1956,6 +1995,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString globalvariable = @"Set Global Variable {00} ({01})";
 
             public static LocalizedString guildvariable = @"Set Guild Variable {00} ({01})";
+
+            public static LocalizedString UserVariable = @"Set {00} {01} ({02})";
 
             public static LocalizedString gotolabel = @"Go to Label {00}";
 
@@ -2512,6 +2553,9 @@ Tick timer saved in server config.json.";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString CheckBank = @"Check Bank?";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString UserVariableValue = @"User Variable Value:";
         }
 
         public partial struct EventConditionDesc
@@ -2615,6 +2659,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString startquest = @"Can Start Quest: {00}";
 
+            public static LocalizedString SystemTime = @"System Time (ms)";
+
             public static LocalizedString tasknotfound = @"Not Found";
 
             public static LocalizedString time = @"Time is between {00} and {01}";
@@ -2622,6 +2668,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString timeinvalid = @"invalid";
 
             public static LocalizedString True = @"True";
+
+            public static LocalizedString UserVariable = @"{00}: {01} {02}";
 
         }
 
@@ -2702,6 +2750,7 @@ Tick timer saved in server config.json.";
                 {15, @"Guild Variable Changed"},
                 {16, @"Inventory Changed"},
                 {17, @"Map Changed"},
+                {18, @"User Variable Changed"},
             };
 
             public static LocalizedString conditions = @"Conditions";
@@ -2823,6 +2872,8 @@ Tick timer saved in server config.json.";
                 {2, @"Autorun"},
                 {3, "Player Bump"},
             };
+
+            public static LocalizedString VariableTrigger = @"Variable:";
 
             public static LocalizedString walkinganim = @"Walking Anim";
 
@@ -2955,6 +3006,10 @@ Tick timer saved in server config.json.";
                 {"moveright", @"Move Right"},
                 {"movetowardplayer", @"Move Toward Player"},
                 {"moveup", @"Move Up"},
+                {"moveupleft", @"Move Up Left"},
+                {"moveupright", @"Move Up Right"},
+                {"movedownright", @"Move Down Right"},
+                {"movedownleft", @"Move Down Left"},
                 {"setanimation", @"Set Animation..."},
                 {"setattribute", @"Set Attribute"},
                 {"setgraphic", @"Set Graphic..."},
@@ -3183,6 +3238,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString booleancloneplayervariablevalue = @"Player Variable Value: ";
 
+            public static LocalizedString BooleanCloneUserVariableValue = @"User Variable Value: ";
+
             public static LocalizedString numericlabel = @"Integer Variable:";
 
             public static LocalizedString numericadd = @"Add";
@@ -3193,9 +3250,11 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString numericcloneglobalvariablevalue = @"Global Variable Value: ";
 
-            public static LocalizedString numericcloneguildvariablevalue = @"Global Variable Value: ";
+            public static LocalizedString numericcloneguildvariablevalue = @"Guild Variable Value: ";
 
             public static LocalizedString numericcloneplayervariablevalue = @"Player Variable Value: ";
+
+            public static LocalizedString NumericCloneUserVariableValue = @"User Variable Value: ";
 
             public static LocalizedString numericmultiply = @"Multiply";
 
@@ -3453,6 +3512,18 @@ Tick timer saved in server config.json.";
             public static LocalizedString Yes = @"Yes";
         }
 
+        public partial struct GameObjectStrings
+        {
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString New = @"New {00}";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString UserVariable = @"User Variable";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString UserVariables = @"User Variables";
+        }
+
         public partial struct Time
         {
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -3479,9 +3550,12 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString abilitypowerbonus = @"Ability Pwr:";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString AddBonusEffect = @"Add";
+
             public static LocalizedString animation = @"Animation:";
 
-            public static LocalizedString attackanimation = @"Attack Animation:";
+            public static LocalizedString attackanimation = @"Extra Attack Animation:";
 
             public static LocalizedString attackbonus = @"Attack:";
 
@@ -3512,6 +3586,12 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString bonuseffect = @"Bonus Effect:";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString BonusEffectGroup = @"Bonus Effects";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString BonusEffectItem = @"{00}: {01}%";
+
             public static Dictionary<int, LocalizedString> bonuseffects = new Dictionary<int, LocalizedString>
             {
                 {0, @"None"},
@@ -3520,6 +3600,7 @@ Tick timer saved in server config.json.";
                 {3, @"Tenacity"},
                 {4, @"Luck"},
                 {5, @"EXP"},
+                {6, @"Mana Steal"},
             };
 
             public static LocalizedString bonuses = @"Stat Bonuses";
@@ -3531,6 +3612,12 @@ Tick timer saved in server config.json.";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString DeathDropChance = @"Drop chance on Death (%):";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString DespawnTime = @"Item Despawn Time (ms)";
+
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString DespawnTimeTooltip = @"0 for server default";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public static LocalizedString CanBag = @"Can Bag?";
@@ -3664,6 +3751,9 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString cannotuse = @"Cannot Use Message:";
 
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public static LocalizedString RemoveBonusEffect = @"Remove";
+
             public static LocalizedString requirements = @"Edit Usage Requirements";
 
             public static LocalizedString save = @"Save";
@@ -3702,6 +3792,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString title = @"Item Editor";
 
             public static LocalizedString tooltype = @"Tool Type:";
+
+            public static LocalizedString AttackSpriteOverride = @"Sprite Attack Animation:";
 
             public static LocalizedString twohanded = @"2 Hand";
 
@@ -4400,16 +4492,16 @@ Tick timer saved in server config.json.";
             public static LocalizedString Tenacity = @"Tenacity (%):";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static Dictionary<StatusTypes, LocalizedString> Immunities = new Dictionary<StatusTypes, LocalizedString>
+            public static Dictionary<SpellEffect, LocalizedString> Immunities = new Dictionary<SpellEffect, LocalizedString>
             {
-                {StatusTypes.Knockback, @"Knockback"},
-                {StatusTypes.Silence, @"Silence"},
-                {StatusTypes.Stun, @"Stun"},
-                {StatusTypes.Snare, @"Snare"},
-                {StatusTypes.Blind, @"Blind"},
-                {StatusTypes.Transform, @"Transform"},
-                {StatusTypes.Sleep, @"Sleep"},
-                {StatusTypes.Taunt, @"Taunt"},
+                {SpellEffect.Knockback, @"Knockback"},
+                {SpellEffect.Silence, @"Silence"},
+                {SpellEffect.Stun, @"Stun"},
+                {SpellEffect.Snare, @"Snare"},
+                {SpellEffect.Blind, @"Blind"},
+                {SpellEffect.Transform, @"Transform"},
+                {SpellEffect.Sleep, @"Sleep"},
+                {SpellEffect.Taunt, @"Taunt"},
             };
 
         }
@@ -4522,12 +4614,12 @@ Tick timer saved in server config.json.";
             public static LocalizedString GrappleOptionsTitle = @"Grapple Options";
 
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-            public static Dictionary<GrappleOptions, LocalizedString> GrappleOpts = new Dictionary<GrappleOptions, LocalizedString>
+            public static Dictionary<GrappleOption, LocalizedString> GrappleOpts = new Dictionary<GrappleOption, LocalizedString>
             {
-                {GrappleOptions.MapAttribute, @"On Map Attribute"},
-                {GrappleOptions.Player, @"On Player"},
-                {GrappleOptions.NPC, @"On NPC"},
-                {GrappleOptions.Resource, @"On Resource"},
+                {GrappleOption.MapAttribute, @"On Map Attribute"},
+                {GrappleOption.Player, @"On Player"},
+                {GrappleOption.NPC, @"On NPC"},
+                {GrappleOption.Resource, @"On Resource"},
             };
 
             public static LocalizedString ignoreactiveresources = @"Active Resources";
@@ -4928,7 +5020,9 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString cancel = @"Cancel";
 
-            public static LocalizedString castanimation = @"Cast Animation:";
+            public static LocalizedString castanimation = @"Extra Cast Anim.:";
+
+            public static LocalizedString CastSpriteOverride = @"Sprite Cast Anim.:";
 
             public static LocalizedString castrange = @"Cast Range (tiles):";
 
@@ -5195,6 +5289,8 @@ Tick timer saved in server config.json.";
 
             public static LocalizedString textidguildvar = @"Text Id: \guildvar ";
 
+            public static LocalizedString UserVariableId = @"Text Id: \uservar ";
+
         }
 
         public partial struct TaskEditor
@@ -5336,8 +5432,8 @@ Tick timer saved in server config.json.";
             public static LocalizedString rate = @"Time Rate:";
 
             public static LocalizedString ratedesc = @"Enter 1 for normal rate of time.
-Values larger than one for faster days. 
-Values between 0 and 1 for longer days. 
+Values larger than one for faster days.
+Values between 0 and 1 for longer days.
 Negative values for time to flow backwards.";
 
             public static LocalizedString ratesuffix = @"x Normal";

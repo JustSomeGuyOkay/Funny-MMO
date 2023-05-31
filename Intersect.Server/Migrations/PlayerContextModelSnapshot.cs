@@ -117,14 +117,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("ParentBagId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -144,14 +144,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("PlayerId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -209,12 +209,12 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -279,14 +279,14 @@ namespace Intersect.Server.Migrations
 
                     b.Property<Guid>("ItemId");
 
+                    b.Property<string>("ItemPropertiesJson")
+                        .HasColumnName("ItemProperties");
+
                     b.Property<Guid>("PlayerId");
 
                     b.Property<int>("Quantity");
 
                     b.Property<int>("Slot");
-
-                    b.Property<string>("StatBuffsJson")
-                        .HasColumnName("StatBuffs");
 
                     b.HasKey("Id");
 
@@ -353,8 +353,6 @@ namespace Intersect.Server.Migrations
 
                     b.Property<int>("Slot");
 
-                    b.Property<long>("SpellCd");
-
                     b.Property<Guid>("SpellId");
 
                     b.HasKey("Id");
@@ -362,6 +360,22 @@ namespace Intersect.Server.Migrations
                     b.HasIndex("PlayerId");
 
                     b.ToTable("Player_Spells");
+                });
+
+            modelBuilder.Entity("Intersect.Server.Database.PlayerData.Players.UserVariable", b =>
+                {
+                    b.Property<Guid>("VariableId");
+
+                    b.Property<Guid>("UserId");
+
+                    b.Property<string>("Json")
+                        .HasColumnName("Value");
+
+                    b.HasKey("VariableId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("User_Variables");
                 });
 
             modelBuilder.Entity("Intersect.Server.Database.PlayerData.User", b =>
@@ -623,6 +637,14 @@ namespace Intersect.Server.Migrations
                     b.HasOne("Intersect.Server.Entities.Player", "Player")
                         .WithMany("Spells")
                         .HasForeignKey("PlayerId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Intersect.Server.Database.PlayerData.Players.UserVariable", b =>
+                {
+                    b.HasOne("Intersect.Server.Database.PlayerData.User", "User")
+                        .WithMany("Variables")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 

@@ -111,17 +111,21 @@ namespace Intersect.Server.Entities.Events
         )
         {
             VariableValue value = null;
-            if (condition.VariableType == VariableTypes.PlayerVariable)
+            if (condition.VariableType == VariableType.PlayerVariable)
             {
                 value = player.GetVariableValue(condition.VariableId);
             }
-            else if (condition.VariableType == VariableTypes.ServerVariable)
+            else if (condition.VariableType == VariableType.ServerVariable)
             {
                 value = ServerVariableBase.Get(condition.VariableId)?.Value;
             }
-            else if (condition.VariableType == VariableTypes.GuildVariable)
+            else if (condition.VariableType == VariableType.GuildVariable)
             {
                 value = player.Guild?.GetVariableValue(condition.VariableId);
+            }
+            else if (condition.VariableType == VariableType.UserVariable)
+            {
+                value = player.User.GetVariableValue(condition.VariableId);
             }
 
             if (value == null)
@@ -144,15 +148,15 @@ namespace Intersect.Server.Entities.Events
             {
                 switch (condition.VariableType)
                 {
-                    case VariableTypes.PlayerVariable:
+                    case VariableType.PlayerVariable:
                         quantity = (int)player.GetVariableValue(condition.VariableId).Integer;
 
                         break;
-                    case VariableTypes.ServerVariable:
+                    case VariableType.ServerVariable:
                         quantity = (int)ServerVariableBase.Get(condition.VariableId)?.Value.Integer;
 
                         break;
-                    case VariableTypes.GuildVariable:
+                    case VariableType.GuildVariable:
                         quantity = (int)player.Guild?.GetVariableValue(condition.VariableId).Integer;
 
                         break;
@@ -216,42 +220,42 @@ namespace Intersect.Server.Entities.Events
 
             switch (condition.Comparator) //Comparator
             {
-                case VariableComparators.Equal:
+                case VariableComparator.Equal:
                     if (lvlStat == condition.Value)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.GreaterOrEqual:
+                case VariableComparator.GreaterOrEqual:
                     if (lvlStat >= condition.Value)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.LesserOrEqual:
+                case VariableComparator.LesserOrEqual:
                     if (lvlStat <= condition.Value)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.Greater:
+                case VariableComparator.Greater:
                     if (lvlStat > condition.Value)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.Less:
+                case VariableComparator.Less:
                     if (lvlStat < condition.Value)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.NotEqual:
+                case VariableComparator.NotEqual:
                     if (lvlStat != condition.Value)
                     {
                         return true;
@@ -432,18 +436,14 @@ namespace Intersect.Server.Entities.Events
             QuestBase questBase
         )
         {
-            for (var i = 0; i < Options.EquipmentSlots.Count; i++)
+            if (player == null || condition == null)
             {
-                if (player.Equipment[i] >= 0)
-                {
-                    if (player.Items[player.Equipment[i]].ItemId == condition.ItemId)
-                    {
-                        return true;
-                    }
-                }
+                return false;
             }
 
-            return false;
+            var equipmentIds = player.EquippedItems.Select(item => item.Descriptor.Id).ToArray();
+
+            return equipmentIds?.Contains(condition.ItemId) ?? false;
         }
 
         public static bool MeetsCondition(
@@ -453,8 +453,13 @@ namespace Intersect.Server.Entities.Events
             QuestBase questBase
         )
         {
+            if (player == null || condition == null)
+            {
+                return false;
+            }
+
             var equipmentIndex = Options.EquipmentSlots.IndexOf(condition.Name);
-            return player.Equipment[equipmentIndex] >= 0;
+            return player.TryGetEquipmentSlot(equipmentIndex, out _);
         }
 
         public static bool MeetsCondition(
@@ -470,15 +475,15 @@ namespace Intersect.Server.Entities.Events
             {
                 switch (condition.VariableType)
                 {
-                    case VariableTypes.PlayerVariable:
+                    case VariableType.PlayerVariable:
                         quantity = (int)player.GetVariableValue(condition.VariableId).Integer;
 
                         break;
-                    case VariableTypes.ServerVariable:
+                    case VariableType.ServerVariable:
                         quantity = (int)ServerVariableBase.Get(condition.VariableId)?.Value.Integer;
 
                         break;
-                    case VariableTypes.GuildVariable:
+                    case VariableType.GuildVariable:
                         quantity = (int)player.Guild?.GetVariableValue(condition.VariableId).Integer;
 
                         break;
@@ -514,7 +519,7 @@ namespace Intersect.Server.Entities.Events
 
         public static bool CheckVariableComparison(
             VariableValue currentValue,
-            VariableCompaison comparison,
+            VariableComparison comparison,
             Player player,
             Event instance
         )
@@ -532,17 +537,21 @@ namespace Intersect.Server.Entities.Events
             VariableValue compValue = null;
             if (comparison.CompareVariableId != Guid.Empty)
             {
-                if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
+                if (comparison.CompareVariableType == VariableType.PlayerVariable)
                 {
                     compValue = player.GetVariableValue(comparison.CompareVariableId);
                 }
-                else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
+                else if (comparison.CompareVariableType == VariableType.ServerVariable)
                 {
                     compValue = ServerVariableBase.Get(comparison.CompareVariableId)?.Value;
                 }
-                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                else if (comparison.CompareVariableType == VariableType.GuildVariable)
                 {
                     compValue = player.Guild?.GetVariableValue(comparison.CompareVariableId);
+                }
+                else if (comparison.CompareVariableType == VariableType.UserVariable)
+                {
+                    compValue = player.User.GetVariableValue(comparison.CompareVariableId);
                 }
             }
             else
@@ -588,18 +597,26 @@ namespace Intersect.Server.Entities.Events
             VariableValue compValue = null;
             if (comparison.CompareVariableId != Guid.Empty)
             {
-                if (comparison.CompareVariableType == VariableTypes.PlayerVariable)
+                if (comparison.CompareVariableType == VariableType.PlayerVariable)
                 {
                     compValue = player.GetVariableValue(comparison.CompareVariableId);
                 }
-                else if (comparison.CompareVariableType == VariableTypes.ServerVariable)
+                else if (comparison.CompareVariableType == VariableType.ServerVariable)
                 {
                     compValue = ServerVariableBase.Get(comparison.CompareVariableId)?.Value;
                 }
-                else if (comparison.CompareVariableType == VariableTypes.GuildVariable)
+                else if (comparison.CompareVariableType == VariableType.GuildVariable)
                 {
                     compValue = player.Guild?.GetVariableValue(comparison.CompareVariableId);
                 }
+                else if (comparison.CompareVariableType == VariableType.UserVariable)
+                {
+                    compValue = player.User.GetVariableValue(comparison.CompareVariableId);
+                }
+            }
+            else if (comparison.TimeSystem)
+            {
+                compValue = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             }
             else
             {
@@ -627,42 +644,42 @@ namespace Intersect.Server.Entities.Events
 
             switch (comparison.Comparator) //Comparator
             {
-                case VariableComparators.Equal:
+                case VariableComparator.Equal:
                     if (varVal == compareAgainst)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.GreaterOrEqual:
+                case VariableComparator.GreaterOrEqual:
                     if (varVal >= compareAgainst)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.LesserOrEqual:
+                case VariableComparator.LesserOrEqual:
                     if (varVal <= compareAgainst)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.Greater:
+                case VariableComparator.Greater:
                     if (varVal > compareAgainst)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.Less:
+                case VariableComparator.Less:
                     if (varVal < compareAgainst)
                     {
                         return true;
                     }
 
                     break;
-                case VariableComparators.NotEqual:
+                case VariableComparator.NotEqual:
                     if (varVal != compareAgainst)
                     {
                         return true;
@@ -686,9 +703,9 @@ namespace Intersect.Server.Entities.Events
 
             switch (comparison.Comparator)
             {
-                case StringVariableComparators.Equal:
+                case StringVariableComparator.Equal:
                     return varVal == compareAgainst;
-                case StringVariableComparators.Contains:
+                case StringVariableComparator.Contains:
                     return varVal.Contains(compareAgainst);
             }
 

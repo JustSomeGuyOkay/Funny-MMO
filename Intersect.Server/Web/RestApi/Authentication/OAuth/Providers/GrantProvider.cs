@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -94,6 +94,12 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
                 return;
             }
 
+            if (user.Ban != default)
+            {
+                context.Rejected();
+                return;
+            }
+
             if (!user.Power?.Api ?? true)
             {
                 context.SetError("insufficient_permissions");
@@ -109,8 +115,11 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
             var ticketId = Guid.NewGuid();
             owinContext.Set("ticket_id", ticketId);
 
+            var userIdString = user.Id.ToString();
             var identity = new ClaimsIdentity(options.AuthenticationType);
-            identity.AddClaim(new Claim(IntersectClaimTypes.UserId, user.Id.ToString()));
+            identity.AddClaim(new Claim(ClaimTypes.Name, user.Name));
+            identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userIdString));
+            identity.AddClaim(new Claim(IntersectClaimTypes.UserId, userIdString));
             identity.AddClaim(new Claim(IntersectClaimTypes.UserName, user.Name));
             identity.AddClaim(new Claim(IntersectClaimTypes.Email, user.Email));
             identity.AddClaim(new Claim(IntersectClaimTypes.ClientId, clientId.ToString()));
@@ -208,12 +217,12 @@ namespace Intersect.Server.Web.RestApi.Authentication.OAuth.Providers
             switch (grantType)
             {
                 case "password":
-                    context.Validated();
+                    _ = context.Validated();
 
                     return;
 
                 case "refresh_token":
-                    context.Validated();
+                    _ = context.Validated();
 
                     return;
 
