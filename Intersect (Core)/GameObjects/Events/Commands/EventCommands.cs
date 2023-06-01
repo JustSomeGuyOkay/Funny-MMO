@@ -792,7 +792,7 @@ namespace Intersect.GameObjects.Events.Commands
 
         public int ItemQuantity { get; set; }
 
-        public byte Dir { get; set; }
+        public Direction Dir { get; set; }
 
         //Tile Spawn Variables  (Will spawn on map tile if mapid is not empty)
         public Guid MapId { get; set; }

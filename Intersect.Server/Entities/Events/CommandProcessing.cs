@@ -1168,7 +1168,7 @@ namespace Intersect.Server.Entities.Events
             var itemQuantity = 1; //TBI
             var tileX = 0;
             var tileY = 0;
-            var direction = (byte)Directions.Up;
+            var direction = Direction.Up;
             var targetEntity = (Entity)player;
             if (mapId != Guid.Empty)
             {
@@ -1200,23 +1200,23 @@ namespace Intersect.Server.Entities.Events
                 {
                     int xDiff = command.X;
                     int yDiff = command.Y;
-                    if (command.Dir == 1)
+                    if (command.Dir == Direction.Up)
                     {
                         var tmp = 0;
                         switch (targetEntity.Dir)
                         {
-                            case (int)Directions.Down:
+                            case Direction.Down:
                                 yDiff *= -1;
                                 xDiff *= -1;
 
                                 break;
-                            case (int)Directions.Left:
+                            case Direction.Left:
                                 tmp = yDiff;
                                 yDiff = xDiff;
                                 xDiff = tmp;
 
                                 break;
-                            case (int)Directions.Right:
+                            case Direction.Right:
                                 tmp = yDiff;
                                 yDiff = xDiff;
                                 xDiff = -tmp;
@@ -1224,7 +1224,7 @@ namespace Intersect.Server.Entities.Events
                                 break;
                         }
 
-                        direction = (byte)targetEntity.Dir;
+                        direction = targetEntity.Dir;
                     }
 
                     mapId = targetEntity.MapId;

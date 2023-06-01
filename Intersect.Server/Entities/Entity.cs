@@ -931,7 +931,7 @@ namespace Intersect.Server.Entities
         //Returns the amount of time required to traverse 1 tile
         public virtual float GetMovementTime()
         {
-            var time = 900f / (float) (1 + Math.Log(Stat[(int) Stats.Speed].Value()));
+            var time = 900f / (float) (1 + Math.Log(Stat[(int)Enums.Stat.Speed].Value()));
             if (Dir > Direction.Right)
             {
                 time *= MathHelper.UnitDiagonalLength;

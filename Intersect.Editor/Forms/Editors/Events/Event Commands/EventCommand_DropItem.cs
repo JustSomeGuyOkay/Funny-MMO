@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
@@ -63,7 +63,7 @@ namespace Intersect.Editor.Forms.Editors.Events.Event_Commands
                     //Fill in the map cmb
                     nudWarpX.Value = mMyCommand.X;
                     nudWarpY.Value = mMyCommand.Y;
-                    cmbDirection.SelectedIndex = mMyCommand.Dir;
+                    cmbDirection.SelectedIndex = (int)mMyCommand.Dir;
 
                     break;
                 case 1: //On/Around Entity Spawn
@@ -95,7 +95,7 @@ namespace Intersect.Editor.Forms.Editors.Events.Event_Commands
             cmbDirection.Items.Clear();
             for (var i = 0; i < 4; i++)
             {
-                cmbDirection.Items.Add(Strings.Directions.dir[i]);
+                cmbDirection.Items.Add(Strings.Direction.dir[(Enums.Direction)i]);
             }
 
             cmbDirection.SelectedIndex = 0;
@@ -175,7 +175,7 @@ namespace Intersect.Editor.Forms.Editors.Events.Event_Commands
                     mMyCommand.MapId = MapList.OrderedMaps[cmbMap.SelectedIndex].MapId;
                     mMyCommand.X = (sbyte) nudWarpX.Value;
                     mMyCommand.Y = (sbyte) nudWarpY.Value;
-                    mMyCommand.Dir = (byte) cmbDirection.SelectedIndex;
+                    mMyCommand.Dir = (Enums.Direction) cmbDirection.SelectedIndex;
 
                     break;
                 case 1: //On/Around Entity Spawn
@@ -191,7 +191,7 @@ namespace Intersect.Editor.Forms.Editors.Events.Event_Commands
 
                     mMyCommand.X = (sbyte) mSpawnX;
                     mMyCommand.Y = (sbyte) mSpawnY;
-                    mMyCommand.Dir = (byte) Convert.ToInt32(chkDirRelative.Checked);
+                    mMyCommand.Dir = (Enums.Direction) Convert.ToInt32(chkDirRelative.Checked);
 
                     break;
             }

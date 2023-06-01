@@ -1202,7 +1202,7 @@ namespace Intersect.Editor.Forms.Editors.Events
                         return Strings.EventCommandList.dropitem.ToString(
                             ItemBase.GetName(command.ItemId),
                             Strings.EventCommandList.spawnonmap.ToString(
-                                orderedMap.Name, command.X, command.Y, Strings.Directions.dir?[(sbyte)command.Dir]
+                                orderedMap.Name, command.X, command.Y, Strings.Direction.dir?[command.Dir]
                             )
                         );
                     }
@@ -1211,7 +1211,7 @@ namespace Intersect.Editor.Forms.Editors.Events
                 return Strings.EventCommandList.dropitem.ToString(
                     ItemBase.GetName(command.ItemId),
                     Strings.EventCommandList.spawnonmap.ToString(
-                        Strings.EventCommandList.mapnotfound, command.X, command.Y, Strings.Directions.dir[command.Dir]
+                        Strings.EventCommandList.mapnotfound, command.X, command.Y, Strings.Direction.dir[command.Dir]
                     )
                 );
             }
