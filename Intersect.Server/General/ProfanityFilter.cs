@@ -38,7 +38,7 @@ namespace Intersect.Server.General
                 try
                 {
                     filteredWords = JsonConvert.DeserializeObject<List<string>>(json) ?? new List<string>();
-                    regexFilters = filteredWords.Select(word => ToRegexPattern(word)).ToList();
+                    regexFilters = filteredWords.Select(word => ToRegexPattern(word)).ToList() ?? new List<string>();
                 }
                 catch (Exception exception)
                 {
