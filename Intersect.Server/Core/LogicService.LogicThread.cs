@@ -386,11 +386,6 @@ namespace Intersect.Server.Core
                         {
                             MapInstanceUpdateQueue.Enqueue(mapInstance);
                         }
-
-                        if (ActiveMapInstances.Keys.Contains(mapInstance.Id))
-                        {
-                            MapInstanceUpdateQueue.Enqueue(mapInstance);
-                        }
                     }
                 }
                 catch (ThreadAbortException)
